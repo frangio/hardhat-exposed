@@ -1,0 +1,21 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [master]
+  pull_request: {}
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with:
+        node-version: 12.x
+    - name: npm install and build
+      run: npm ci
+    - name: test
+      run: npm test

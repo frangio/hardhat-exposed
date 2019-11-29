@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "incremental": true,
+    "target": "es2018",
+    "module": "commonjs",
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "outDir": "dist"
+  },
+  "include": [
+    "src/**/*"
+  ]
+}

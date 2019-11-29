@@ -1,0 +1,7 @@
+{
+  "rangeStrategy": "bump",
+  "extends": [
+    "config:base",
+    ":automergeMinor"
+  ]
+}
