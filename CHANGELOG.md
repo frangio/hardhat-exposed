@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5
+
+- Remove duplicate functions in exposed contract when overriding.
+
 ## 0.1.4
 
 - Fix storage location for constructor arguments.

@@ -88,3 +88,15 @@ contract Types {
 contract ConstructorStorageLocation {
     constructor(string memory name) {}
 }
+
+contract Chained0 {
+    function _chained() internal virtual {}
+}
+
+contract Chained1 is Chained0 {
+    function _chained() internal virtual override {}
+}
+
+contract Chained2 is Chained1 {
+    function _chained() internal virtual override {}
+}

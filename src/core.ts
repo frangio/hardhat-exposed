@@ -209,12 +209,16 @@ function mapContracts(solcOutput: SolcOutput): ContractMap {
 function getInternalFunctions(contract: ContractDefinition, contractMap: ContractMap): FunctionDefinition[] {
   const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
 
+  const overriden = new Set<number>();
   const res = [];
 
   for (const parent of parents) {
     for (const fn of findAll('FunctionDefinition', parent)) {
-      if (fn.visibility === 'internal') {
+      if (fn.visibility === 'internal' && !overriden.has(fn.id)) {
         res.push(fn);
+      }
+      for (const b of fn.baseFunctions ?? []) {
+        overriden.add(b);
       }
     }
   }
