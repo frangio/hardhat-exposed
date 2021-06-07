@@ -9,7 +9,8 @@
   "files": [
     "/dist",
     "/src",
-    "!*.test.{js,d.ts}{,.map}"
+    "!**/*.test.{js,d.ts}{,.map}",
+    "!**/*.tsbuildinfo"
   ],
   "scripts": {
     "prepare": "tsc",
