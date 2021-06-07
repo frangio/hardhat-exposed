@@ -188,7 +188,7 @@ function getType(varDecl: VariableDeclaration, location: StorageLocation = varDe
   if (typeof typeString !== 'string' || typeof typeIdentifier !== 'string') {
     throw new Error('Missing type information');
   }
-  const type = typeString.replace(/^struct /, '') + (typeIdentifier.endsWith('_ptr') ? ` ${location}` : '');
+  const type = typeString.replace(/^(struct|enum|contract) /, '') + (typeIdentifier.endsWith('_ptr') ? ` ${location}` : '');
   return type;
 }
 

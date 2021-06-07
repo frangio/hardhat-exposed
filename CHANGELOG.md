@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Fix functions with enum and contract arguments.
+
 ## 0.1.2
 
 - Fix missing dependency.

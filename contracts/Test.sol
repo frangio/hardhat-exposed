@@ -75,3 +75,12 @@ abstract contract Child3 is Parent1, Parent2, Child2 {}
 abstract contract Child4 is Parent1, Parent2, Parent3 {
     constructor(uint c) {}
 }
+
+contract Types {
+    enum Enum {
+        A
+    }
+    function _testEnumType(Enum e) internal {}
+    function _testContractType(Types t) internal {}
+    function _testMappingType(mapping (uint => uint) storage m) internal {}
+}
