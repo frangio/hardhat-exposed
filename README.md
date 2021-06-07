@@ -29,3 +29,5 @@ const Foo = ethers.getContractFactory('XFoo');
 const foo = Foo.deploy();
 await foo.x_get();
 ```
+
+These exposed contracts will be created in a `contracts-exposed` directory. We strongly suggest adding this directory to `.gitignore`.

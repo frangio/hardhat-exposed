@@ -18,7 +18,7 @@ export interface SolcOutput {
 const rootPath = hre.config.paths.root;
 const sourcesPath = hre.config.paths.sources;
 const rootRelativeSourcesPath = path.relative(rootPath, sourcesPath);
-export const exposedPath = path.join(sourcesPath, 'exposed');
+export const exposedPath = path.join(rootPath, 'contracts-exposed');
 const exposedVersionPragma = '>=0.6.0';
 
 export function getExposed(solcOutput: SolcOutput, isUserFile: (sourceName: string) => boolean): Map<string, ResolvedFile> {
