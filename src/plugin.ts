@@ -57,7 +57,7 @@ async function getExposedJob(compilationJob: CompilationJob, output: CompilerOut
 
   const cj: CompilationJob = {
     getResolvedFiles: () => [...exposed.values()],
-    emitsArtifacts: file => exposed.has(file.absolutePath), // TODO: always true?
+    emitsArtifacts: file => exposed.has(file.absolutePath),
     getSolcConfig: () => compilationJob.getSolcConfig(),
     hasSolc9573Bug: () => compilationJob.hasSolc9573Bug(),
     merge: other => other.merge(cj),
