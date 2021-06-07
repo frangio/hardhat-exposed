@@ -36,7 +36,7 @@ await foo.x_get();
 
 The plugin will also generate a constructor to initialize your abstract contracts.
 
-For example, with this set of contracts:
+For example, in this set of contracts notice that `C` is abstract because it doesn't call `B`'s constructor.
 
 ```solidity
 contract A {
@@ -50,12 +50,14 @@ contract C is A, B {
 }
 ```
 
-The plugin generates the following exposed version of `C`. Notice how a parameter for `B` was added.
+In the plugin-generated exposed version of `C`, there will be an additional parameter to initialize `B`.
 
 ```solidity
 contract XC is C {
-    constructor(uint256 c, uint256 b) C(c) B(b) {}
+    constructor(uint256 b, uint256 c) B(b) C(c) {}
 }
 ```
+
+The order of parameters in this generated constructor will be according to the linearization of the parent contracts, starting with the most base contract and ending with the most derived one. This order can be unintuitive, so in these cases make sure you test the contract was initialized as desired.
 
 Note that if a contract is abstract because it's missing an implementation for a virtual function, the exposed contract will remain abstract too.

@@ -124,7 +124,7 @@ function areFunctionsFullyImplemented(contract: ContractDefinition, contractMap:
 }
 
 function makeConstructor(contract: ContractDefinition, contractMap: ContractMap): string[] {
-  const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
+  const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id)).reverse();
   const parentsWithConstructor = parents.filter(c => getConstructor(c)?.parameters.parameters.length);
   const initializedParentIds = new Set(parents.flatMap(p => [
     ...p.baseContracts.filter(c => c.arguments?.length).map(c => c.id),
