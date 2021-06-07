@@ -12,7 +12,7 @@ npm install -D hardhat-exposed
 
 Add to `hardhat.config.js`:
 
-```
+```javascript
 require('hardhat-exposed');
 ```
 
