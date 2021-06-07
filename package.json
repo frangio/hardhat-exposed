@@ -19,7 +19,8 @@
     "test:watch": "hardhat compile && fgbg 'ava --watch' 'tsc --watch' --"
   },
   "dependencies": {
-    "array.prototype.flatmap": "^1.2.4"
+    "array.prototype.flatmap": "^1.2.4",
+    "solidity-ast": "^0.4.25"
   },
   "devDependencies": {
     "@ava/typescript": "^1.1.1",
@@ -34,7 +35,6 @@
     "hardhat": "^2.3.0",
     "mocha": "^8.4.0",
     "rimraf": "^3.0.2",
-    "solidity-ast": "^0.4.25",
     "typescript": "^4.3.2",
     "web3": "^1.3.6"
   },
