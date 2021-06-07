@@ -139,7 +139,7 @@ function makeConstructor(contract: ContractDefinition, contractMap: ContractMap)
     const args = [];
     for (const a of getConstructor(c)!.parameters.parameters) {
       const name = missingArguments.has(a.name) ? `${c.name}_${a.name}` : a.name;
-      const type = getType(a, 'calldata');
+      const type = getType(a, 'memory');
       missingArguments.set(name, type);
       args.push(name);
     }

@@ -84,3 +84,7 @@ contract Types {
     function _testContractType(Types t) internal {}
     function _testMappingType(mapping (uint => uint) storage m) internal {}
 }
+
+contract ConstructorStorageLocation {
+    constructor(string memory name) {}
+}

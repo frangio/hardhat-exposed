@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- Fix storage location for constructor arguments.
+
 ## 0.1.3
 
 - Fix functions with enum and contract arguments.
