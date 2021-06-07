@@ -16,6 +16,8 @@ Add to `hardhat.config.js`:
 require('hardhat-exposed');
 ```
 
+Note: After setting up for the first time, you may need to recompile with `hardhat compile --force` once.
+
 ## Usage
 
 The plugin will create "exposed" versions of your contracts that will be prefixed with an `X`, and its internal functions will be exposed as external functions with an `x` prefix.
