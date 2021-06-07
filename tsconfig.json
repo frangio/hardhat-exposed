@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     "incremental": true,
-    "target": "es2018",
+    "target": "es2019",
+    "lib": ["es2019", "es2019.array"],
     "module": "commonjs",
     "sourceMap": true,
     "declaration": true,

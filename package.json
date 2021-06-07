@@ -1,10 +1,11 @@
 {
-  "name": "template-typescript-ava",
+  "name": "hardhat-exposed",
   "version": "0.1.0",
-  "description": "Project template using TypeScript and AVA",
+  "description": "Automatically expose internal functions for smart contract testing",
+  "license": "MIT",
   "author": "Francisco Giordano <frangio.1@gmail.com>",
-  "repository": "github:frangio/template-typescript-ava",
-  "main": "dist/index.js",
+  "repository": "github:frangio/hardhat-exposed",
+  "main": "dist/plugin.js",
   "files": [
     "/dist",
     "/src",
@@ -13,17 +14,26 @@
   "scripts": {
     "prepare": "tsc",
     "prepublish": "rimraf dist",
-    "test": "tsc && ava",
-    "test:watch": "fgbg 'ava --watch' 'tsc --watch' --"
+    "test": "tsc && hardhat compile && ava",
+    "test:watch": "hardhat compile && fgbg 'ava --watch' 'tsc --watch' --"
+  },
+  "dependencies": {
+    "array.prototype.flatmap": "^1.2.4"
   },
   "devDependencies": {
     "@ava/typescript": "^1.1.1",
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-truffle5": "^2.0.0",
+    "@types/mocha": "^7.0.2",
     "@types/node": "^10.17.60",
     "ava": "^3.15.0",
     "fgbg": "^0.1.5",
     "mocha": "^8.4.0",
     "rimraf": "^3.0.2",
+    "solidity-ast": "^0.4.25",
     "typescript": "^4.3.2"
   },
-  "license": "MIT"
+  "peerDependencies": {
+    "hardhat": "^2.3.0"
+  }
 }
