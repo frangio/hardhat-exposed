@@ -48,3 +48,23 @@ interface Iface {
 abstract contract Abs {
     function _abstract() internal pure virtual returns (uint);
 }
+
+contract Concrete is Abs {
+    function _abstract() internal pure override returns (uint) {
+        return 42;
+    }
+}
+
+abstract contract Parent1 {
+    constructor(uint x) {}
+
+    function _testParent1() internal {}
+}
+
+abstract contract Parent2 {
+    constructor(uint y) {}
+}
+
+abstract contract Child1 is Parent1 {}
+abstract contract Child2 is Parent1, Parent2 {}
+abstract contract Child3 is Parent1, Parent2, Child2 {}

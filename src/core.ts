@@ -1,5 +1,6 @@
 import hre from 'hardhat';
 import path from 'path';
+import 'array.prototype.flatmap/auto';
 
 import { SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation } from 'solidity-ast';
 import { findAll } from 'solidity-ast/utils';
@@ -67,9 +68,8 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
 
       ...Array.from(findAll('ContractDefinition', ast), c => {
         const isLibrary = c.contractKind === 'library';
-        const isAbstract = c.abstract || !c.fullyImplemented;
         const contractHeader = [`contract X${c.name}`];
-        if (isAbstract) {
+        if (!areFunctionsFullyImplemented(c, contractMap)) {
           contractHeader.unshift('abstract');
         }
         if (!isLibrary) {
@@ -79,6 +79,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
         return [
           contractHeader.join(' '),
           spaceBetween(
+            makeConstructor(c, contractMap),
             ...getInternalFunctions(c, contractMap).filter(isExternalizable).map(fn => {
               const args = getFunctionArguments(fn);
               const header = [
@@ -107,13 +108,71 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
   )
 }
 
-interface Argument {
-  type: string;
-  name: string;
+// Note this is not the same as contract.fullyImplemented, because this does
+// not consider that missing constructor calls.
+function areFunctionsFullyImplemented(contract: ContractDefinition, contractMap: ContractMap): boolean {
+  const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
+  const abstractFunctionIds = new Set(parents.flatMap(p => [...findAll('FunctionDefinition', p)].filter(f => !f.implemented).map(f => f.id)));
+  for (const p of parents) {
+    for (const f of findAll('FunctionDefinition', p)) {
+      for (const b of f.baseFunctions ?? []) {
+        abstractFunctionIds.delete(b);
+      }
+    }
+  }
+  return abstractFunctionIds.size === 0;
+}
+
+function makeConstructor(contract: ContractDefinition, contractMap: ContractMap): string[] {
+  const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
+  const parentsWithConstructor = parents.filter(c => getConstructor(c)?.parameters.parameters.length);
+  const initializedParentIds = new Set(parents.flatMap(p => [
+    ...p.baseContracts.filter(c => c.arguments?.length).map(c => c.id),
+    ...getConstructor(p)?.modifiers.map(m => m.modifierName.referencedDeclaration).filter(notNull) ?? [],
+  ]));
+  const uninitializedParents = parentsWithConstructor.filter(c => !initializedParentIds.has(c.id));
+
+  const missingArguments = new Map<string, string>(); // name -> type
+  const parentArguments = new Map<string, string[]>();
+
+  for (const c of uninitializedParents) {
+    const args = [];
+    for (const a of getConstructor(c)!.parameters.parameters) {
+      const name = missingArguments.has(a.name) ? `${c.name}_${a.name}` : a.name;
+      const type = getType(a, 'calldata');
+      missingArguments.set(name, type);
+      args.push(name);
+    }
+    parentArguments.set(c.name, args);
+  }
+  return [
+    [
+      `constructor(${[...missingArguments].map(([name, type]) => `${type} ${name}`).join(', ')})`,
+      ...uninitializedParents.map(p => `${p.name}(${mustGet(parentArguments, p.name).join(', ')})`),
+      '{}'
+    ].join(' '),
+  ];
+}
+
+function getConstructor(contract: ContractDefinition): FunctionDefinition | undefined {
+  for (const fnDef of findAll('FunctionDefinition', contract)) {
+    if (fnDef.kind === 'constructor') {
+      return fnDef;
+    }
+  }
+}
+
+function notNull<T>(value: T): value is NonNullable<T> {
+  return value != undefined;
 }
 
 function isExternalizable(fnDef: FunctionDefinition): boolean {
-  return fnDef.implemented && fnDef.parameters.parameters.every(p => p.storageLocation !== 'storage');
+  return fnDef.kind !== 'constructor' && fnDef.implemented && fnDef.parameters.parameters.every(p => p.storageLocation !== 'storage');
+}
+
+interface Argument {
+  type: string;
+  name: string;
 }
 
 function getFunctionArguments(fnDef: FunctionDefinition): Argument[] {
