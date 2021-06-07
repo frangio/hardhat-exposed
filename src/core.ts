@@ -65,32 +65,40 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
       [`pragma solidity ${exposedVersionPragma};`],
       [`import "${inputPath}";`],
 
-      ...Array.from(findAll('ContractDefinition', ast), c => [
-        `contract X${c.name} is ${c.name} {`,
-        spaceBetween(
-          ...getInternalFunctions(c, contractMap).filter(isExternalizable).map(fn => {
-            const args = getFunctionArguments(fn);
-            const header = [
-              'function',
-              `x${fn.name}(${args.map(a => `${a.type} ${a.name}`)})`,
-              'external',
-            ];
-            if (fn.stateMutability !== 'nonpayable') {
-              header.push(fn.stateMutability);
-            }
-            if (fn.returnParameters.parameters.length > 0) {
-              header.push(`returns (${fn.returnParameters.parameters.map(p => getType(p, 'memory')).join(', ')})`);
-            }
-            header.push('{');
-            return [
-              header.join(' '), [
-                `return super.${fn.name}(${args.map(a => a.name)});`
-              ], `}`,
-            ];
-          }),
-        ),
-        `}`,
-      ]),
+      ...Array.from(findAll('ContractDefinition', ast), c => {
+        const isLibrary = c.contractKind === 'library';
+        const contractHeader = [`contract X${c.name}`];
+        if (!isLibrary) {
+          contractHeader.push(`is ${c.name}`);
+        }
+        contractHeader.push('{');
+        return [
+          contractHeader.join(' '),
+          spaceBetween(
+            ...getInternalFunctions(c, contractMap).filter(isExternalizable).map(fn => {
+              const args = getFunctionArguments(fn);
+              const header = [
+                'function',
+                `x${fn.name}(${args.map(a => `${a.type} ${a.name}`)})`,
+                'external',
+              ];
+              if (fn.stateMutability !== 'nonpayable') {
+                header.push(fn.stateMutability);
+              }
+              if (fn.returnParameters.parameters.length > 0) {
+                header.push(`returns (${fn.returnParameters.parameters.map(p => getType(p, 'memory')).join(', ')})`);
+              }
+              header.push('{');
+              return [
+                header.join(' '), [
+                  `return ${isLibrary ? c.name : 'super'}.${fn.name}(${args.map(a => a.name)});`
+                ], `}`,
+              ];
+            }),
+          ),
+          `}`,
+        ]
+      }),
     )
   )
 }

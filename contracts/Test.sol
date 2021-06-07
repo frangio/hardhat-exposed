@@ -34,3 +34,9 @@ contract Bar is Foo {
         return 0xba2;
     }
 }
+
+library Lib {
+    function _testLib() internal pure returns (uint) {
+        return 0x11b;
+    }
+}
