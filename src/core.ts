@@ -67,7 +67,11 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
 
       ...Array.from(findAll('ContractDefinition', ast), c => {
         const isLibrary = c.contractKind === 'library';
+        const isAbstract = c.abstract || !c.fullyImplemented;
         const contractHeader = [`contract X${c.name}`];
+        if (isAbstract) {
+          contractHeader.unshift('abstract');
+        }
         if (!isLibrary) {
           contractHeader.push(`is ${c.name}`);
         }
@@ -109,7 +113,7 @@ interface Argument {
 }
 
 function isExternalizable(fnDef: FunctionDefinition): boolean {
-  return fnDef.parameters.parameters.every(p => p.storageLocation !== 'storage');
+  return fnDef.implemented && fnDef.parameters.parameters.every(p => p.storageLocation !== 'storage');
 }
 
 function getFunctionArguments(fnDef: FunctionDefinition): Argument[] {

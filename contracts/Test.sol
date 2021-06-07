@@ -40,3 +40,11 @@ library Lib {
         return 0x11b;
     }
 }
+
+interface Iface {
+    function _abstract() external pure returns (uint);
+}
+
+abstract contract Abs {
+    function _abstract() internal pure virtual returns (uint);
+}
