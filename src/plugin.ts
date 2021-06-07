@@ -7,7 +7,7 @@ import {
 } from 'hardhat/builtin-tasks/task-names';
 import type { CompilationJob, CompilerInput, CompilerOutput, SolcBuild } from 'hardhat/types';
 
-task(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS, async (_, hre, superCall: () => Promise<string[]>) => {
+task(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS, async (_0, _1, superCall: () => Promise<string[]>) => {
   const path = await import('path');
   const { exposedPath } = await import('./core');
   const paths = await superCall();

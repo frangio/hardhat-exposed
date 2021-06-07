@@ -4,7 +4,7 @@ import path from 'path';
 import { SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation } from 'solidity-ast';
 import { findAll } from 'solidity-ast/utils';
 import { formatLines, spaceBetween } from './utils/format-lines';
-import { CompilationJob, FileContent, ResolvedFile } from 'hardhat/types';
+import { FileContent, ResolvedFile } from 'hardhat/types';
 
 export interface SolcOutput {
   sources: {
