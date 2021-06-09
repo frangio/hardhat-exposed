@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6
+
+- Improve performance a little by not requesting bytecode or optimizations for first compilation
+
 ## 0.1.5
 
 - Remove duplicate functions in exposed contract when overriding.

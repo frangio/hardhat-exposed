@@ -30,7 +30,17 @@ interface CompileReturn {
 task<CompileJobArgs>(TASK_COMPILE_SOLIDITY_COMPILE_JOB, async (args, hre, superCall) => {
   let { compilationJob } = args;
 
-  const input: CompilerInput = await hre.run( TASK_COMPILE_SOLIDITY_GET_COMPILER_INPUT, { compilationJob });
+  let input: CompilerInput = await hre.run( TASK_COMPILE_SOLIDITY_GET_COMPILER_INPUT, { compilationJob });
+
+  // Improves performance a little by not requesting bytecode or optimizations.
+  input = {
+    ...input,
+    settings: {
+      ...input.settings,
+      optimizer: { enabled: false },
+      outputSelection: { '*': { '': ['ast'] } },
+    },
+  };
 
   const { output }: CompileReturn = await hre.run(TASK_COMPILE_SOLIDITY_COMPILE, {
     solcVersion: compilationJob.getSolcConfig().version,
