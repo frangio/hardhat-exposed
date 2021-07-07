@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.7
+
+- Fix import paths on Windows.
+
 ## 0.1.6
 
 - Improve performance a little by not requesting bytecode or optimizations for first compilation

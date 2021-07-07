@@ -1,5 +1,5 @@
 import hre from 'hardhat';
-import path from 'path';
+import { posix as path } from 'path';
 import 'array.prototype.flatmap/auto';
 
 import { SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation } from 'solidity-ast';
