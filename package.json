@@ -15,8 +15,8 @@
   "scripts": {
     "prepare": "tsc",
     "prepublish": "rimraf dist",
-    "test": "tsc && hardhat compile && ava",
-    "test:watch": "hardhat compile && fgbg 'ava --watch' 'tsc --watch' --"
+    "test": "tsc && hardhat compile --force && ava",
+    "test:watch": "hardhat compile --force && fgbg 'ava --watch' 'tsc --watch' --"
   },
   "dependencies": {
     "array.prototype.flatmap": "^1.2.4",
