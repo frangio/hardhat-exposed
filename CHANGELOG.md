@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.8
+
+- Fix import paths on Windows.
+
 ## 0.1.7
 
 - Fix import paths on Windows.

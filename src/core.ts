@@ -1,5 +1,5 @@
 import hre from 'hardhat';
-import { posix as path } from 'path';
+import path  from 'path';
 import 'array.prototype.flatmap/auto';
 
 import { SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation } from 'solidity-ast';
@@ -40,7 +40,7 @@ export function getExposed(solcOutput: SolcOutput, isUserFile: (sourceName: stri
 function getExposedFile(absolutePath: string, ast: SourceUnit, contractMap: ContractMap): ResolvedFile {
   const sourceName = path.relative(rootPath, absolutePath);
 
-  const inputPath = path.relative(path.dirname(absolutePath), ast.absolutePath);
+  const inputPath = path.relative(path.dirname(absolutePath), ast.absolutePath).replace(/\\/g, '/');
   const content: FileContent = {
     rawContent: getExposedContent(ast, inputPath, contractMap),
     imports: [inputPath],
