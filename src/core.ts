@@ -109,7 +109,9 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
 }
 
 // Note this is not the same as contract.fullyImplemented, because this does
-// not consider missing constructor calls.
+// not consider missing constructor calls. We don't use contract.abstract
+// because even if a user declares a contract abstract, we want to make it
+// concrete if it is possible.
 function areFunctionsFullyImplemented(contract: ContractDefinition, contractMap: ContractMap): boolean {
   const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
   const abstractFunctionIds = new Set(parents.flatMap(p => [...findAll('FunctionDefinition', p)].filter(f => !f.implemented).map(f => f.id)));
