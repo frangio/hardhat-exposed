@@ -116,7 +116,7 @@ function areFunctionsFullyImplemented(contract: ContractDefinition, contractMap:
   const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
   const abstractFunctionIds = new Set(parents.flatMap(p => [...findAll('FunctionDefinition', p)].filter(f => !f.implemented).map(f => f.id)));
   for (const p of parents) {
-    for (const f of findAll('FunctionDefinition', p)) {
+    for (const f of findAll(['FunctionDefinition', 'VariableDeclaration'], p)) {
       for (const b of f.baseFunctions ?? []) {
         abstractFunctionIds.delete(b);
       }

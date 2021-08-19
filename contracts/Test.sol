@@ -46,13 +46,17 @@ interface Iface {
 }
 
 abstract contract Abs {
-    function _abstract() internal pure virtual returns (uint);
+    function abs() external view virtual returns (uint);
 }
 
-contract Concrete is Abs {
-    function _abstract() internal pure override returns (uint) {
+contract Concrete1 is Abs {
+    function abs() public pure override returns (uint) {
         return 42;
     }
+}
+
+contract Concrete2 is Abs {
+    uint public override abs = 42;
 }
 
 abstract contract Parent1 {
