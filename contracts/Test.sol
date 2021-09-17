@@ -104,3 +104,7 @@ contract Chained1 is Chained0 {
 contract Chained2 is Chained1 {
     function _chained() internal virtual override {}
 }
+
+contract WithVars {
+    uint256 internal var1 = 55;
+}

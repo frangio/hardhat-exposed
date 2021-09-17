@@ -1,5 +1,5 @@
 import hre from 'hardhat';
-import path  from 'path';
+import path from 'path';
 import 'array.prototype.flatmap/auto';
 
 import { SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation } from 'solidity-ast';
@@ -80,6 +80,22 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
           contractHeader.join(' '),
           spaceBetween(
             makeConstructor(c, contractMap),
+            ...getInternalVariables(c, contractMap).map(v => {
+              const header = [
+                'function',
+                `x${v.name}()`,
+                'external',
+                'view',
+                'returns',
+                `(${getType(v, 'memory')})`,
+                '{',
+              ];
+              return [
+                header.join(' '), [
+                  `return ${v.name};`
+                ], '}',
+              ];
+            }),
             ...getInternalFunctions(c, contractMap).filter(isExternalizable).map(fn => {
               const args = getFunctionArguments(fn);
               const header = [
@@ -186,7 +202,10 @@ function getFunctionArguments(fnDef: FunctionDefinition): Argument[] {
 }
 
 function getType(varDecl: VariableDeclaration, location: StorageLocation = varDecl.storageLocation): string {
-  const { typeString, typeIdentifier } = varDecl.typeDescriptions;
+  if(!varDecl.typeName) {
+    throw new Error('Missing type information');
+  }
+  const { typeString, typeIdentifier } = varDecl.typeName.typeDescriptions;
   if (typeof typeString !== 'string' || typeof typeIdentifier !== 'string') {
     throw new Error('Missing type information');
   }
@@ -202,6 +221,24 @@ function mapContracts(solcOutput: SolcOutput): ContractMap {
   for (const { ast } of Object.values(solcOutput.sources)) {
     for (const contract of findAll('ContractDefinition', ast)) {
       res.set(contract.id, contract);
+    }
+  }
+
+  return res;
+}
+
+function getInternalVariables(contract: ContractDefinition, contractMap: ContractMap): VariableDeclaration[] {
+  const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
+
+  const overriden = new Set<number>();
+  const res = [];
+
+  for (const parent of parents) {
+    for (const v of findAll('VariableDeclaration', parent)) {
+      if (v.stateVariable && v.visibility === 'internal' && !overriden.has(v.id)) {
+        res.push(v);
+        overriden.add(v.id);
+      }
     }
   }
 
