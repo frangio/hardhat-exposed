@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 contract Foo {
-    function _testFoo() internal pure returns (uint256) {
+    function _testFoo() internal pure returns (uint) {
         return 0xf00;
     }
 
@@ -11,7 +11,7 @@ contract Foo {
     }
 
     struct S {
-        uint256 x;
+        uint x;
     }
 
     S s;
@@ -34,47 +34,47 @@ contract Foo {
 }
 
 contract Bar is Foo {
-    function _testBar() internal pure returns (uint256) {
+    function _testBar() internal pure returns (uint) {
         return 0xba2;
     }
 }
 
 library Lib {
-    function _testLib() internal pure returns (uint256) {
+    function _testLib() internal pure returns (uint) {
         return 0x11b;
     }
 }
 
 interface Iface {
-    function _abstract() external pure returns (uint256);
+    function _abstract() external pure returns (uint);
 }
 
 abstract contract Abs {
-    function abs() external view virtual returns (uint256);
+    function abs() external view virtual returns (uint);
 }
 
 contract Concrete1 is Abs {
-    function abs() public pure override returns (uint256) {
+    function abs() public pure override returns (uint) {
         return 42;
     }
 }
 
 contract Concrete2 is Abs {
-    uint256 public override abs = 42;
+    uint public override abs = 42;
 }
 
 abstract contract Parent1 {
-    constructor(uint256 x) {}
+    constructor(uint x) {}
 
     function _testParent1() internal {}
 }
 
 abstract contract Parent2 {
-    constructor(uint256 y) {}
+    constructor(uint y) {}
 }
 
 abstract contract Parent3 {
-    constructor(uint256 z) {}
+    constructor(uint z) {}
 }
 
 abstract contract Child1 is Parent1 {}
@@ -84,7 +84,7 @@ abstract contract Child2 is Parent1, Parent2 {}
 abstract contract Child3 is Parent1, Parent2, Child2 {}
 
 abstract contract Child4 is Parent1, Parent2, Parent3 {
-    constructor(uint256 c) {}
+    constructor(uint c) {}
 }
 
 contract Types {
@@ -96,7 +96,7 @@ contract Types {
 
     function _testContractType(Types t) internal {}
 
-    function _testMappingType(mapping(uint256 => uint256) storage m) internal {}
+    function _testMappingType(mapping(uint => uint) storage m) internal {}
 }
 
 contract ConstructorStorageLocation {
@@ -116,30 +116,30 @@ contract Chained2 is Chained1 {
 }
 
 contract WithVars {
-    uint256 internal var1 = 55;
-    uint256[] internal var2;
-    mapping(uint256 => uint8) internal var3;
+    uint internal var1 = 55;
+    uint[] internal var2;
+    mapping(uint => uint8) internal var3;
 
     struct Struct {
-        uint256 a;
+        uint a;
     }
     Struct internal var4 = Struct({a: 1});
     Struct[] internal var5;
-    mapping(uint256 => Struct) internal var6;
+    mapping(uint => Struct) internal var6;
 
-    mapping(uint256 => mapping(bool => Struct)) internal var7;
-    mapping(uint256 => mapping(bool => Struct[])) internal var8;
+    mapping(uint => mapping(bool => Struct)) internal var7;
+    mapping(uint => mapping(bool => Struct[])) internal var8;
 
     struct StructWithNestedMapping {
-        uint256 a;
+        uint a;
         bytes3 b;
-        mapping(uint256 => uint256) map;
+        mapping(uint => uint) map;
     }
 
     // TODO: TypeError: Types containing (nested) mappings can only be parameters or return variables of internal or library functions.
     // StructWithNestedMapping internal var9;
     // StructWithNestedMapping[] internal var10;
-    // mapping(uint256 => StructWithNestedMapping) internal var11;
+    // mapping(uint => StructWithNestedMapping) internal var11;
 
     constructor() {
         var2.push(1);
