@@ -2,6 +2,8 @@
 /// <reference types="@nomiclabs/hardhat-ethers" />
 
 import test from 'ava';
+import { BigNumber } from 'ethers';
+// import { BN } from 'bn.js';
 import hre from 'hardhat';
 
 test('ethers', async t => {
@@ -12,6 +14,14 @@ test('ethers', async t => {
   const XWithVars = await hre.ethers.getContractFactory('XWithVars');
   const withVars = await XWithVars.deploy();
   t.is((await withVars.xvar1()).toNumber(), 55);
+  t.deepEqual((await withVars.xvar2()), [BigNumber.from(1), BigNumber.from(2), BigNumber.from(3)]);
+  t.is((await withVars.xvar3(1)), 2);
+  t.deepEqual((await withVars.xvar4()).a, BigNumber.from(1));
+  // t.deepEqual((await withVars.xvar5()), TODO);
+  t.deepEqual((await withVars.xvar6(1)).a, BigNumber.from(2));
+  t.deepEqual((await withVars.xvar7(1, true)).a, BigNumber.from(10));
+  // t.deepEqual((await withVars.xvar8(1, true)), TODO);
+
 });
 
 test('truffle', async t => {
@@ -21,5 +31,5 @@ test('truffle', async t => {
 
   const XWithVars = hre.artifacts.require('XWithVars');
   const withVars = await XWithVars.new();
-  t.is((await withVars.xvar1()).toNumber(), 55);
+  // TODO
 });

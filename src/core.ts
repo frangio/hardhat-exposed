@@ -2,7 +2,7 @@ import hre from 'hardhat';
 import path from 'path';
 import 'array.prototype.flatmap/auto';
 
-import { SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation } from 'solidity-ast';
+import { SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName } from 'solidity-ast';
 import { findAll } from 'solidity-ast/utils';
 import { formatLines, spaceBetween } from './utils/format-lines';
 import { FileContent, ResolvedFile } from 'hardhat/types';
@@ -76,6 +76,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
           contractHeader.push(`is ${c.name}`);
         }
         contractHeader.push('{');
+
         return [
           contractHeader.join(' '),
           spaceBetween(
@@ -83,16 +84,16 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
             ...getInternalVariables(c, contractMap).map(v => {
               const header = [
                 'function',
-                `x${v.name}()`,
+                `x${v.name}(${getGetterTypes(v).map(a => `${a.type} ${a.name}`).join(', ')})`,
                 'external',
                 'view',
                 'returns',
-                `(${getType(v, 'memory')})`,
-                '{',
               ];
+              header.push(`(${getGetterValues(v).map(a => `${a.type}`)})`);
+              header.push('{');
               return [
                 header.join(' '), [
-                  `return ${v.name};`
+                  `return ${v.name}` + (getGetterTypes(v).length > 0 ? `${getGetterTypes(v).map(a => `[${a.name}]`).join('')}` : '') + ';',
                 ], '}',
               ];
             }),
@@ -202,10 +203,14 @@ function getFunctionArguments(fnDef: FunctionDefinition): Argument[] {
 }
 
 function getType(varDecl: VariableDeclaration, location: StorageLocation = varDecl.storageLocation): string {
-  if(!varDecl.typeName) {
+  if (!varDecl.typeName) {
     throw new Error('Missing type information');
   }
-  const { typeString, typeIdentifier } = varDecl.typeName.typeDescriptions;
+  return getTypeFromTypeDescriptions(varDecl.typeName.typeDescriptions, location);
+}
+
+function getTypeFromTypeDescriptions(td: TypeDescriptions, location: StorageLocation): string {
+  const { typeString, typeIdentifier } = td;
   if (typeof typeString !== 'string' || typeof typeIdentifier !== 'string') {
     throw new Error('Missing type information');
   }
@@ -243,6 +248,45 @@ function getInternalVariables(contract: ContractDefinition, contractMap: Contrac
   }
 
   return res;
+}
+
+function getGetterTypes(v: VariableDeclaration): Argument[] {
+  if (!v.typeName) {
+    throw new Error('missing typenName');
+  }
+  return _getGetterTypes(v.typeName, []);
+}
+
+function _getGetterTypes(v: TypeName, types: Argument[]): Argument[] {
+  if (v.nodeType === "Mapping") {
+    types.push({ name: `arg${types.length}`, type: getTypeFromTypeDescriptions(v.keyType.typeDescriptions, 'memory') })
+    _getGetterTypes(v.valueType, types);
+  }
+  return types;
+}
+
+
+function getGetterValues(v: VariableDeclaration): Argument[] {
+  if (!v.typeName) {
+    throw new Error('missing typenName');
+  }
+  const types = _getMappingValues(v.typeName, []).pop();
+  if (types) {
+    return [types];
+  }
+  return [];
+}
+
+function _getMappingValues(v: TypeName, types: Argument[]): Argument[] {
+
+  if (v.nodeType === "Mapping") {
+    types.push({ name: `value${types.length}`, type: getTypeFromTypeDescriptions(v.valueType.typeDescriptions, 'memory') })
+    _getMappingValues(v.valueType, types);
+  } else {
+    return [{ name: `value${types.length}`, type: getTypeFromTypeDescriptions(v.typeDescriptions, 'memory') }];
+  }
+
+  return types;
 }
 
 function getInternalFunctions(contract: ContractDefinition, contractMap: ContractMap): FunctionDefinition[] {

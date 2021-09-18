@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "array.prototype.flatmap": "^1.2.4",
+    "bn.js": "^5.2.0",
     "solidity-ast": "^0.4.25"
   },
   "devDependencies": {
