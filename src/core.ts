@@ -80,7 +80,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
           contractHeader.join(' '),
           spaceBetween(
             makeConstructor(c, contractMap),
-            ...getInternalFunctions(c, contractMap).filter(isExternalizable).map(fn => {
+            ...getFunctions(c, contractMap, isLibrary ? 'all' : 'internal').filter(isExternalizable).map(fn => {
               const args = getFunctionArguments(fn);
               const header = [
                 'function',
@@ -208,7 +208,7 @@ function mapContracts(solcOutput: SolcOutput): ContractMap {
   return res;
 }
 
-function getInternalFunctions(contract: ContractDefinition, contractMap: ContractMap): FunctionDefinition[] {
+function getFunctions(contract: ContractDefinition, contractMap: ContractMap, subset: 'all' | 'internal'): FunctionDefinition[] {
   const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
 
   const overriden = new Set<number>();
@@ -216,8 +216,10 @@ function getInternalFunctions(contract: ContractDefinition, contractMap: Contrac
 
   for (const parent of parents) {
     for (const fn of findAll('FunctionDefinition', parent)) {
-      if (fn.visibility === 'internal' && !overriden.has(fn.id)) {
-        res.push(fn);
+      if (!overriden.has(fn.id)) {
+        if (subset === 'all' || fn.visibility === subset) {
+          res.push(fn);
+        }
       }
       for (const b of fn.baseFunctions ?? []) {
         overriden.add(b);
