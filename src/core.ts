@@ -84,16 +84,16 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
             ...getInternalVariables(c, contractMap).map(v => {
               const header = [
                 'function',
-                `x${v.name}(${getGetterTypes(v).map(a => `${a.type} ${a.name}`).join(', ')})`,
+                `x${v.name}(${getVarGetterArgs(v).map(a => `${a.type} ${a.name}`).join(', ')})`,
                 'external',
                 'view',
                 'returns',
               ];
-              header.push(`(${getGetterValues(v).map(a => `${a.type}`)})`);
+              header.push(`(${getVarGetterReturnType(v)})`);
               header.push('{');
               return [
                 header.join(' '), [
-                  `return ${v.name}` + (getGetterTypes(v).length > 0 ? `${getGetterTypes(v).map(a => `[${a.name}]`).join('')}` : '') + ';',
+                  `return ${v.name}${getVarGetterArgs(v).map(a => `[${a.name}]`).join('')};`,
                 ], '}',
               ];
             }),
@@ -248,43 +248,26 @@ function getInternalVariables(contract: ContractDefinition, contractMap: Contrac
   return res;
 }
 
-function getGetterTypes(v: VariableDeclaration): Argument[] {
+function getVarGetterArgs(v: VariableDeclaration): Argument[] {
   if (!v.typeName) {
     throw new Error('missing typenName');
   }
-  return _getGetterTypes(v.typeName, []);
-}
-
-function _getGetterTypes(v: TypeName, types: Argument[]): Argument[] {
-  if (v.nodeType === "Mapping") {
-    types.push({ name: `arg${types.length}`, type: getTypeFromTypeDescriptions(v.keyType.typeDescriptions, 'memory') })
-    _getGetterTypes(v.valueType, types);
+  const types = [];
+  for (let t = v.typeName; t.nodeType === 'Mapping'; t = t.valueType) {
+    types.push({ name: `arg${types.length}`, type: getTypeFromTypeDescriptions(t.keyType.typeDescriptions, 'memory') })
   }
   return types;
 }
 
-
-function getGetterValues(v: VariableDeclaration): Argument[] {
+function getVarGetterReturnType(v: VariableDeclaration): string {
   if (!v.typeName) {
     throw new Error('missing typenName');
   }
-  const types = _getMappingValues(v.typeName, []).pop();
-  if (types) {
-    return [types];
+  let t = v.typeName;
+  while (t.nodeType === 'Mapping') {
+    t = t.valueType;
   }
-  return [];
-}
-
-function _getMappingValues(v: TypeName, types: Argument[]): Argument[] {
-
-  if (v.nodeType === "Mapping") {
-    types.push({ name: `value${types.length}`, type: getTypeFromTypeDescriptions(v.valueType.typeDescriptions, 'memory') })
-    _getMappingValues(v.valueType, types);
-  } else {
-    return [{ name: `value${types.length}`, type: getTypeFromTypeDescriptions(v.typeDescriptions, 'memory') }];
-  }
-
-  return types;
+  return getTypeFromTypeDescriptions(t.typeDescriptions, 'memory');
 }
 
 function getInternalFunctions(contract: ContractDefinition, contractMap: ContractMap): FunctionDefinition[] {
