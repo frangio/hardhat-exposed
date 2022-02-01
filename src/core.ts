@@ -108,7 +108,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
                 header.push(fn.stateMutability);
               }
               if (fn.returnParameters.parameters.length > 0) {
-                header.push(`returns (${fn.returnParameters.parameters.map(p => getType(p, 'memory')).join(', ')})`);
+                header.push(`returns (${fn.returnParameters.parameters.map(p => getVarType(p, 'memory')).join(', ')})`);
               }
               header.push('{');
               return [
@@ -158,7 +158,7 @@ function makeConstructor(contract: ContractDefinition, contractMap: ContractMap)
     const args = [];
     for (const a of getConstructor(c)!.parameters.parameters) {
       const name = missingArguments.has(a.name) ? `${c.name}_${a.name}` : a.name;
-      const type = getType(a, 'memory');
+      const type = getVarType(a, 'memory');
       missingArguments.set(name, type);
       args.push(name);
     }
@@ -196,21 +196,21 @@ interface Argument {
 
 function getFunctionArguments(fnDef: FunctionDefinition): Argument[] {
   return fnDef.parameters.parameters.map((p, i) => {
-    const type = getType(p, 'calldata');
+    const type = getVarType(p, 'calldata');
     const name = p.name || `arg${i}`;
     return { type, name };
   });
 }
 
-function getType(varDecl: VariableDeclaration, location: StorageLocation = varDecl.storageLocation): string {
+function getVarType(varDecl: VariableDeclaration, location: StorageLocation = varDecl.storageLocation): string {
   if (!varDecl.typeName) {
     throw new Error('Missing type information');
   }
-  return getTypeFromTypeDescriptions(varDecl.typeName.typeDescriptions, location);
+  return getType(varDecl.typeName, location);
 }
 
-function getTypeFromTypeDescriptions(td: TypeDescriptions, location: StorageLocation): string {
-  const { typeString, typeIdentifier } = td;
+function getType(typeName: TypeName, location: StorageLocation): string {
+  const { typeString, typeIdentifier } = typeName.typeDescriptions;
   if (typeof typeString !== 'string' || typeof typeIdentifier !== 'string') {
     throw new Error('Missing type information');
   }
@@ -254,7 +254,7 @@ function getVarGetterArgs(v: VariableDeclaration): Argument[] {
   }
   const types = [];
   for (let t = v.typeName; t.nodeType === 'Mapping'; t = t.valueType) {
-    types.push({ name: `arg${types.length}`, type: getTypeFromTypeDescriptions(t.keyType.typeDescriptions, 'memory') })
+    types.push({ name: `arg${types.length}`, type: getType(t.keyType, 'memory') })
   }
   return types;
 }
@@ -267,7 +267,7 @@ function getVarGetterReturnType(v: VariableDeclaration): string {
   while (t.nodeType === 'Mapping') {
     t = t.valueType;
   }
-  return getTypeFromTypeDescriptions(t.typeDescriptions, 'memory');
+  return getType(t, 'memory');
 }
 
 function getInternalFunctions(contract: ContractDefinition, contractMap: ContractMap): FunctionDefinition[] {
