@@ -82,19 +82,20 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
           spaceBetween(
             makeConstructor(c, contractMap),
             ...getInternalVariables(c, contractMap).map(v => {
-              const header = [
-                'function',
-                `x${v.name}(${getVarGetterArgs(v).map(a => `${a.type} ${a.name}`).join(', ')})`,
-                'external',
-                'view',
-                'returns',
-              ];
-              header.push(`(${getVarGetterReturnType(v)})`);
-              header.push('{');
               return [
-                header.join(' '), [
+                [
+                  'function',
+                  `x${v.name}(${getVarGetterArgs(v).map(a => `${a.type} ${a.name}`).join(', ')})`,
+                  'external',
+                  'view',
+                  'returns',
+                  `(${getVarGetterReturnType(v)})`,
+                  '{'
+                ].join(' '),
+                [
                   `return ${v.name}${getVarGetterArgs(v).map(a => `[${a.name}]`).join('')};`,
-                ], '}',
+                ],
+                '}',
               ];
             }),
             ...getInternalFunctions(c, contractMap).filter(isExternalizable).map(fn => {
