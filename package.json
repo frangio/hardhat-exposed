@@ -28,7 +28,7 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@types/mocha": "^7.0.2",
     "@types/node": "^10.17.60",
-    "ava": "^3.15.0",
+    "ava": "^4.0.1",
     "ethers": "^5.3.0",
     "hardhat": "^2.3.0",
     "mocha": "^8.4.0",

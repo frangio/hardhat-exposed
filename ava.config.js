@@ -1,5 +1,4 @@
-export default {
-  verbose: true,
+module.exports = {
   extensions: ['ts'],
   require: ['ts-node/register'],
 };
