@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.10
+
+- Expose internal variables.
+
 ## 0.1.9
 
 - Fix contracts that override a function through a public variable.
