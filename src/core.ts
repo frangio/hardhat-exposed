@@ -1,8 +1,8 @@
 import hre from 'hardhat';
-import path  from 'path';
+import path from 'path';
 import 'array.prototype.flatmap/auto';
 
-import { SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation } from 'solidity-ast';
+import { SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName } from 'solidity-ast';
 import { findAll } from 'solidity-ast/utils';
 import { formatLines, spaceBetween } from './utils/format-lines';
 import { FileContent, ResolvedFile } from 'hardhat/types';
@@ -76,10 +76,28 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
           contractHeader.push(`is ${c.name}`);
         }
         contractHeader.push('{');
+
         return [
           contractHeader.join(' '),
           spaceBetween(
             makeConstructor(c, contractMap),
+            ...getInternalVariables(c, contractMap).map(v => {
+              return [
+                [
+                  'function',
+                  `x${v.name}(${getVarGetterArgs(v).map(a => `${a.type} ${a.name}`).join(', ')})`,
+                  'external',
+                  'view',
+                  'returns',
+                  `(${getVarGetterReturnType(v)})`,
+                  '{'
+                ].join(' '),
+                [
+                  `return ${v.name}${getVarGetterArgs(v).map(a => `[${a.name}]`).join('')};`,
+                ],
+                '}',
+              ];
+            }),
             ...getFunctions(c, contractMap, isLibrary ? 'all' : 'internal').filter(isExternalizable).map(fn => {
               const args = getFunctionArguments(fn);
               const header = [
@@ -91,7 +109,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
                 header.push(fn.stateMutability);
               }
               if (fn.returnParameters.parameters.length > 0) {
-                header.push(`returns (${fn.returnParameters.parameters.map(p => getType(p, 'memory')).join(', ')})`);
+                header.push(`returns (${fn.returnParameters.parameters.map(p => getVarType(p, 'memory')).join(', ')})`);
               }
               header.push('{');
               return [
@@ -141,7 +159,7 @@ function makeConstructor(contract: ContractDefinition, contractMap: ContractMap)
     const args = [];
     for (const a of getConstructor(c)!.parameters.parameters) {
       const name = missingArguments.has(a.name) ? `${c.name}_${a.name}` : a.name;
-      const type = getType(a, 'memory');
+      const type = getVarType(a, 'memory');
       missingArguments.set(name, type);
       args.push(name);
     }
@@ -179,14 +197,21 @@ interface Argument {
 
 function getFunctionArguments(fnDef: FunctionDefinition): Argument[] {
   return fnDef.parameters.parameters.map((p, i) => {
-    const type = getType(p, 'calldata');
+    const type = getVarType(p, 'calldata');
     const name = p.name || `arg${i}`;
     return { type, name };
   });
 }
 
-function getType(varDecl: VariableDeclaration, location: StorageLocation = varDecl.storageLocation): string {
-  const { typeString, typeIdentifier } = varDecl.typeDescriptions;
+function getVarType(varDecl: VariableDeclaration, location: StorageLocation = varDecl.storageLocation): string {
+  if (!varDecl.typeName) {
+    throw new Error('Missing type information');
+  }
+  return getType(varDecl.typeName, location);
+}
+
+function getType(typeName: TypeName, location: StorageLocation): string {
+  const { typeString, typeIdentifier } = typeName.typeDescriptions;
   if (typeof typeString !== 'string' || typeof typeIdentifier !== 'string') {
     throw new Error('Missing type information');
   }
@@ -206,6 +231,44 @@ function mapContracts(solcOutput: SolcOutput): ContractMap {
   }
 
   return res;
+}
+
+function getInternalVariables(contract: ContractDefinition, contractMap: ContractMap): VariableDeclaration[] {
+  const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
+
+  const res = [];
+
+  for (const parent of parents) {
+    for (const v of findAll('VariableDeclaration', parent)) {
+      if (v.stateVariable && v.visibility === 'internal') {
+        res.push(v);
+      }
+    }
+  }
+
+  return res;
+}
+
+function getVarGetterArgs(v: VariableDeclaration): Argument[] {
+  if (!v.typeName) {
+    throw new Error('missing typenName');
+  }
+  const types = [];
+  for (let t = v.typeName; t.nodeType === 'Mapping'; t = t.valueType) {
+    types.push({ name: `arg${types.length}`, type: getType(t.keyType, 'memory') })
+  }
+  return types;
+}
+
+function getVarGetterReturnType(v: VariableDeclaration): string {
+  if (!v.typeName) {
+    throw new Error('missing typenName');
+  }
+  let t = v.typeName;
+  while (t.nodeType === 'Mapping') {
+    t = t.valueType;
+  }
+  return getType(t, 'memory');
 }
 
 function getFunctions(contract: ContractDefinition, contractMap: ContractMap, subset: 'all' | 'internal'): FunctionDefinition[] {
