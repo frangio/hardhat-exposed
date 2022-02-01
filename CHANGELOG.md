@@ -1,8 +1,12 @@
 # Changelog
 
-## 0.1.10
+## 0.1.11
 
 - Expose internal variables.
+
+## 0.1.10
+
+- Add all libary functions in exposed contract.
 
 ## 0.1.9
 

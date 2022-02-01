@@ -43,6 +43,10 @@ library Lib {
     function _testLib() internal pure returns (uint) {
         return 0x11b;
     }
+
+    function _testExt() external pure returns (uint) {
+        return 0x11b;
+    }
 }
 
 interface Iface {

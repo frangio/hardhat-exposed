@@ -1,5 +1,5 @@
 export default {
   verbose: true,
-  ignoredByWatcher: ['**/*.{ts,map,tsbuildinfo}'],
-  typescript: { rewritePaths: { 'src/': 'dist/' } },
+  extensions: ['ts'],
+  require: ['ts-node/register'],
 };
