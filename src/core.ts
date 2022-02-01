@@ -235,14 +235,12 @@ function mapContracts(solcOutput: SolcOutput): ContractMap {
 function getInternalVariables(contract: ContractDefinition, contractMap: ContractMap): VariableDeclaration[] {
   const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
 
-  const overriden = new Set<number>();
   const res = [];
 
   for (const parent of parents) {
     for (const v of findAll('VariableDeclaration', parent)) {
-      if (v.stateVariable && v.visibility === 'internal' && !overriden.has(v.id)) {
+      if (v.stateVariable && v.visibility === 'internal') {
         res.push(v);
-        overriden.add(v.id);
       }
     }
   }
