@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Expose internal functions with storage pointer arguments.
+
 ## 0.2.0
 
 - **Breaking change**: Exposed contracts and functions now use a `$` prefix by default.

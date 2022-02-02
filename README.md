@@ -62,6 +62,14 @@ The order of parameters in this generated constructor will be according to the l
 
 Note that if a contract is abstract because it's missing an implementation for a virtual function, the exposed contract will remain abstract too.
 
+### Storage Pointers
+
+Some internal functions may contain storage pointers in arguments or return values.
+
+Return values are converted to memory pointers (as long as they're not mappings, in this case it's not possible to expose the function), so a struct for example is copied to return data and readable from the tests.
+
+Arguments that are storage pointers are replaced with an integer that is used as an index into a storage array. This allows to test function calls that act on storage such as data structures.
+
 ## Configuration
 
 The prefix can be configured in your Hardhat config. For example, to use the `X`/`x` prefix

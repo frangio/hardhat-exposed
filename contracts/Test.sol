@@ -31,6 +31,12 @@ contract Foo {
     {
         return t;
     }
+
+    mapping (uint => uint) m;
+
+    function _testReturnMapping() internal view returns (mapping (uint => uint) storage) {
+        return m;
+    }
 }
 
 contract Bar is Foo {

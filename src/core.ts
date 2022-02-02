@@ -84,9 +84,14 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
         }
         contractHeader.push('{');
 
+        const externalizableFunctions = getFunctions(c, contractMap, isLibrary ? 'all' : 'internal').filter(isExternalizable);
+
         return [
           contractHeader.join(' '),
           spaceBetween(
+            ...getAllStorageArguments(externalizableFunctions).map(a => [
+              `${a.storageType}[] public ${prefix}${a.storageVar};`,
+            ]),
             makeConstructor(c, contractMap),
             ...getInternalVariables(c, contractMap).map(v => {
               return [
@@ -105,7 +110,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
                 '}',
               ];
             }),
-            ...getFunctions(c, contractMap, isLibrary ? 'all' : 'internal').filter(isExternalizable).map(fn => {
+            ...externalizableFunctions.map(fn => {
               const args = getFunctionArguments(fn);
               const header = [
                 'function',
@@ -113,7 +118,11 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
                 'external',
               ];
               if (fn.stateMutability !== 'nonpayable') {
-                header.push(fn.stateMutability);
+                if (fn.stateMutability === 'pure' && args.some(a => a.storageVar)) {
+                  header.push('view');
+                } else {
+                  header.push(fn.stateMutability);
+                }
               }
               if (fn.returnParameters.parameters.length > 0) {
                 header.push(`returns (${fn.returnParameters.parameters.map(p => getVarType(p, 'memory')).join(', ')})`);
@@ -121,7 +130,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
               header.push('{');
               return [
                 header.join(' '), [
-                  `return ${isLibrary ? c.name : 'super'}.${fn.name}(${args.map(a => a.name)});`
+                  `return ${isLibrary ? c.name : 'super'}.${fn.name}(${args.map(a => a.storageVar ? `${prefix}${a.storageVar}[${a.name}]` : a.name)});`
                 ], `}`,
               ];
             }),
@@ -194,35 +203,57 @@ function notNull<T>(value: T): value is NonNullable<T> {
 }
 
 function isExternalizable(fnDef: FunctionDefinition): boolean {
-  return fnDef.kind !== 'constructor' && fnDef.implemented && fnDef.parameters.parameters.every(p => p.storageLocation !== 'storage');
+  return fnDef.kind !== 'constructor'
+    && fnDef.implemented
+    && !fnDef.returnParameters.parameters.some(p => p.typeName?.nodeType === 'Mapping');
 }
 
 interface Argument {
   type: string;
   name: string;
+  storageVar?: string;
+  storageType?: string;
 }
 
 function getFunctionArguments(fnDef: FunctionDefinition): Argument[] {
   return fnDef.parameters.parameters.map((p, i) => {
-    const type = getVarType(p, 'calldata');
     const name = p.name || `arg${i}`;
-    return { type, name };
+    if (p.storageLocation === 'storage') {
+      const storageType = getVarType(p, null);
+      const storageVar = 'v_' + storageType.replace(/[^0-9a-zA-Z$_]+/g, '_');
+      // The argument is an index to an array in storage.
+      return { name, type: 'uint', storageVar, storageType };
+    } else {
+      const type = getVarType(p, 'calldata');
+      return { name, type };
+    }
   });
 }
 
-function getVarType(varDecl: VariableDeclaration, location: StorageLocation = varDecl.storageLocation): string {
+function getAllStorageArguments(fns: FunctionDefinition[]): Required<Argument>[] {
+  return [
+    ...new Map(
+      fns
+        .flatMap(getFunctionArguments)
+        .filter((a): a is Required<Argument> => !!(a.storageVar && a.storageType))
+        .map(a => [a.storageVar, a])
+    ).values(),
+  ];
+}
+
+function getVarType(varDecl: VariableDeclaration, location: StorageLocation | null = varDecl.storageLocation): string {
   if (!varDecl.typeName) {
     throw new Error('Missing type information');
   }
   return getType(varDecl.typeName, location);
 }
 
-function getType(typeName: TypeName, location: StorageLocation): string {
+function getType(typeName: TypeName, location: StorageLocation | null): string {
   const { typeString, typeIdentifier } = typeName.typeDescriptions;
   if (typeof typeString !== 'string' || typeof typeIdentifier !== 'string') {
     throw new Error('Missing type information');
   }
-  const type = typeString.replace(/^(struct|enum|contract) /, '') + (typeIdentifier.endsWith('_ptr') ? ` ${location}` : '');
+  const type = typeString.replace(/^(struct|enum|contract) /, '') + (typeIdentifier.endsWith('_ptr') && location ? ` ${location}` : '');
   return type;
 }
 
