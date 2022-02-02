@@ -21,8 +21,9 @@ const sourcesPath = hre.config.paths.sources;
 const rootRelativeSourcesPath = path.relative(rootPath, sourcesPath);
 export const exposedPath = path.join(rootPath, 'contracts-exposed');
 const exposedVersionPragma = '>=0.6.0';
+const defaultPrefix = '$';
 
-export function getExposed(solcOutput: SolcOutput, isUserFile: (sourceName: string) => boolean): Map<string, ResolvedFile> {
+export function getExposed(solcOutput: SolcOutput, isUserFile: (sourceName: string) => boolean, prefix?: string): Map<string, ResolvedFile> {
   const res = new Map<string, ResolvedFile>();
   const contractMap = mapContracts(solcOutput);
 
@@ -31,18 +32,18 @@ export function getExposed(solcOutput: SolcOutput, isUserFile: (sourceName: stri
       continue;
     }
     const destPath = path.join(exposedPath, path.relative(rootRelativeSourcesPath, ast.absolutePath));
-    res.set(destPath, getExposedFile(destPath, ast, contractMap));
+    res.set(destPath, getExposedFile(destPath, ast, contractMap, prefix));
   }
 
   return res;
 }
 
-function getExposedFile(absolutePath: string, ast: SourceUnit, contractMap: ContractMap): ResolvedFile {
+function getExposedFile(absolutePath: string, ast: SourceUnit, contractMap: ContractMap, prefix?: string): ResolvedFile {
   const sourceName = path.relative(rootPath, absolutePath);
 
   const inputPath = path.relative(path.dirname(absolutePath), ast.absolutePath).replace(/\\/g, '/');
   const content: FileContent = {
-    rawContent: getExposedContent(ast, inputPath, contractMap),
+    rawContent: getExposedContent(ast, inputPath, contractMap, prefix),
     imports: [inputPath],
     versionPragmas: [exposedVersionPragma],
   };
@@ -59,7 +60,13 @@ function getExposedFile(absolutePath: string, ast: SourceUnit, contractMap: Cont
   };
 }
 
-function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: ContractMap): string {
+function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: ContractMap, prefix = defaultPrefix): string {
+  if (prefix === '' || /^\d|[^0-9a-z_$]/i.test(prefix)) {
+    throw new Error(`Prefix '${prefix}' is not valid`);
+  }
+
+  const contractPrefix = prefix.replace(/^./, c => c.toUpperCase());
+
   return formatLines(
     ...spaceBetween(
       ['// SPDX-License-Identifier: UNLICENSED'],
@@ -68,7 +75,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
 
       ...Array.from(findAll('ContractDefinition', ast), c => {
         const isLibrary = c.contractKind === 'library';
-        const contractHeader = [`contract X${c.name}`];
+        const contractHeader = [`contract ${contractPrefix}${c.name}`];
         if (!areFunctionsFullyImplemented(c, contractMap)) {
           contractHeader.unshift('abstract');
         }
@@ -85,7 +92,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
               return [
                 [
                   'function',
-                  `x${v.name}(${getVarGetterArgs(v).map(a => `${a.type} ${a.name}`).join(', ')})`,
+                  `${prefix}${v.name}(${getVarGetterArgs(v).map(a => `${a.type} ${a.name}`).join(', ')})`,
                   'external',
                   'view',
                   'returns',
@@ -102,7 +109,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
               const args = getFunctionArguments(fn);
               const header = [
                 'function',
-                `x${fn.name}(${args.map(a => `${a.type} ${a.name}`)})`,
+                `${prefix}${fn.name}(${args.map(a => `${a.type} ${a.name}`)})`,
                 'external',
               ];
               if (fn.stateMutability !== 'nonpayable') {

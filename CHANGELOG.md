@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+- **Breaking change**: Exposed contracts and functions now use a `$` prefix by default.
+
+The previous prefix `x` can be restored by configuring the plugin as explained in the README.
+
 ## 0.1.11
 
 - Expose internal variables.

@@ -1,4 +1,4 @@
-import { task } from 'hardhat/config';
+import { extendConfig, task } from 'hardhat/config';
 import {
   TASK_COMPILE_SOLIDITY_COMPILE,
   TASK_COMPILE_SOLIDITY_COMPILE_JOB,
@@ -6,6 +6,10 @@ import {
   TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS,
 } from 'hardhat/builtin-tasks/task-names';
 import type { CompilationJob, CompilerInput, CompilerOutput, SolcBuild } from 'hardhat/types';
+
+extendConfig((config, userConfig) => {
+  config.exposed = userConfig.exposed ?? {};
+});
 
 task(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS, async (_0, _1, superCall: () => Promise<string[]>) => {
   const path = await import('path');
@@ -63,7 +67,7 @@ async function getExposedJob(compilationJob: CompilationJob, output: CompilerOut
 
   const inputFiles = Object.fromEntries(compilationJob.getResolvedFiles().map(rf => [rf.sourceName, rf.absolutePath]));
   const isUserFile = (sourceName: string) => Boolean(inputFiles[sourceName]?.startsWith(hre.config.paths.sources));
-  const exposed = getExposed(output, isUserFile);
+  const exposed = getExposed(output, isUserFile, hre.config.exposed.prefix);
 
   const cj: CompilationJob = {
     getResolvedFiles: () => [...exposed.values()],

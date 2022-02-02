@@ -20,18 +20,18 @@ Note: After setting up for the first time, you may need to recompile with `hardh
 
 ## Usage
 
-The plugin will create "exposed" versions of your contracts that will be prefixed with an `X`, and its internal functions will be exposed as external functions with an `x` prefix.
+The plugin will create "exposed" versions of your contracts that will be prefixed with the symbol `$`, and its internal functions will be exposed as external functions with a `$` prefix as well.
 
 These exposed contracts will be created in a `contracts-exposed` directory. We strongly suggest adding this directory to `.gitignore`.
 
 If you have a contract called `Foo`, with an internal function called `_get`:
 
 ```javascript
-const Foo = ethers.getContractFactory('XFoo');
-// or const Foo = artifacts.require('XFoo');
+const Foo = ethers.getContractFactory('$Foo');
+// or const Foo = artifacts.require('$Foo');
 
 const foo = Foo.deploy();
-await foo.x_get();
+await foo.$_get();
 ```
 
 The plugin will also generate a constructor to initialize your abstract contracts.
@@ -53,7 +53,7 @@ contract C is A, B {
 In the plugin-generated exposed version of `C`, there will be an additional parameter to initialize `B`.
 
 ```solidity
-contract XC is C {
+contract $C is C {
     constructor(uint256 b, uint256 c) B(b) C(c) {}
 }
 ```
@@ -61,3 +61,11 @@ contract XC is C {
 The order of parameters in this generated constructor will be according to the linearization of the parent contracts, starting with the most base contract and ending with the most derived one. This order can be unintuitive, so in these cases make sure you test the contract was initialized as desired.
 
 Note that if a contract is abstract because it's missing an implementation for a virtual function, the exposed contract will remain abstract too.
+
+## Configuration
+
+The prefix can be configured in your Hardhat config. For example, to use the `X`/`x` prefix
+
+```
+exposed: { prefix: 'x' },
+```
