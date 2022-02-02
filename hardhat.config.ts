@@ -1,4 +1,4 @@
-import './dist/plugin';
+import './src/plugin';
 
 import '@nomiclabs/hardhat-truffle5';
 import '@nomiclabs/hardhat-ethers';
