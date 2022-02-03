@@ -86,6 +86,13 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
 
         const externalizableFunctions = getFunctions(c, contractMap, isLibrary ? 'all' : 'internal').filter(isExternalizable);
 
+        const clashingFunctions: Record<string, number> = {};
+        for (const fn of externalizableFunctions) {
+          const id = getFunctionId(fn);
+          clashingFunctions[id] ??= 0;
+          clashingFunctions[id] += 1;
+        }
+
         return [
           contractHeader.join(' '),
           spaceBetween(
@@ -112,9 +119,10 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
             }),
             ...externalizableFunctions.map(fn => {
               const args = getFunctionArguments(fn);
+              const name = clashingFunctions[getFunctionId(fn)] === 1 ? fn.name : getFunctionNameStorageQualified(fn);
               const header = [
                 'function',
-                `${prefix}${fn.name}(${args.map(a => `${a.type} ${a.name}`)})`,
+                `${prefix}${name}(${args.map(a => `${a.type} ${a.name}`)})`,
                 'external',
               ];
               if (fn.stateMutability !== 'nonpayable') {
@@ -157,6 +165,18 @@ function areFunctionsFullyImplemented(contract: ContractDefinition, contractMap:
     }
   }
   return abstractFunctionIds.size === 0;
+}
+
+function getFunctionId(fn: FunctionDefinition): string {
+  const storageArgs = new Set<Argument>(getStorageArguments(fn));
+  const nonStorageArgs = getFunctionArguments(fn).filter(a => !storageArgs.has(a));
+  return fn.name + nonStorageArgs.map(a => a.type).join('');
+}
+
+function getFunctionNameStorageQualified(fn: FunctionDefinition): string {
+  const storageArgs = getStorageArguments(fn);
+  const storageArgsVariant = storageArgs.map(a => a.storageVar.replace('v_', '')).join('_').replace(/^./, '_$&');
+  return fn.name + storageArgsVariant;
 }
 
 function makeConstructor(contract: ContractDefinition, contractMap: ContractMap): string[] {
@@ -230,13 +250,15 @@ function getFunctionArguments(fnDef: FunctionDefinition): Argument[] {
   });
 }
 
+function getStorageArguments(fn: FunctionDefinition): Required<Argument>[] {
+  return getFunctionArguments(fn)
+    .filter((a): a is Required<Argument> => !!(a.storageVar && a.storageType));
+}
+
 function getAllStorageArguments(fns: FunctionDefinition[]): Required<Argument>[] {
   return [
     ...new Map(
-      fns
-        .flatMap(getFunctionArguments)
-        .filter((a): a is Required<Argument> => !!(a.storageVar && a.storageType))
-        .map(a => [a.storageVar, a])
+      fns.flatMap(getStorageArguments).map(a => [a.storageVar, a]),
     ).values(),
   ];
 }

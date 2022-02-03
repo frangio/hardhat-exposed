@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2
+
+- Fix clashes of overloaded function names with different storage pointer types.
+
 ## 0.2.1
 
 - Expose internal functions with storage pointer arguments.

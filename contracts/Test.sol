@@ -37,6 +37,13 @@ contract Foo {
     function _testReturnMapping() internal view returns (mapping (uint => uint) storage) {
         return m;
     }
+
+    struct Z {
+        bool z;
+    }
+
+    function _testClash(S storage t) internal {}
+    function _testClash(Z storage t) internal {}
 }
 
 contract Bar is Foo {
