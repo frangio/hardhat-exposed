@@ -5,10 +5,16 @@ import {
   TASK_COMPILE_SOLIDITY_GET_COMPILER_INPUT,
   TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS,
 } from 'hardhat/builtin-tasks/task-names';
-import type { CompilationJob, CompilerInput, CompilerOutput, SolcBuild } from 'hardhat/types';
+import type { CompilationJob, CompilerInput, CompilerOutput, HardhatConfig, SolcBuild } from 'hardhat/types';
 
-extendConfig((config, userConfig) => {
-  config.exposed = userConfig.exposed ?? {};
+import type {} from './type-extensions';
+
+extendConfig((config, { exposed: userConfig }) => {
+  config.exposed = {
+    prefix: userConfig?.prefix,
+    exclude: userConfig?.exclude ?? [],
+    include: userConfig?.include ?? ['**/*'],
+  };
 });
 
 task(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS, async (_0, _1, superCall: () => Promise<string[]>) => {
@@ -66,8 +72,9 @@ async function getExposedJob(compilationJob: CompilationJob, output: CompilerOut
   const { getExposed } = await import('./core');
 
   const inputFiles = Object.fromEntries(compilationJob.getResolvedFiles().map(rf => [rf.sourceName, rf.absolutePath]));
-  const isUserFile = (sourceName: string) => Boolean(inputFiles[sourceName]?.startsWith(hre.config.paths.sources));
-  const exposed = getExposed(output, isUserFile, hre.config.exposed.prefix);
+
+  const include = await getMatcher(hre.config);
+  const exposed = getExposed(output, include, hre.config.exposed.prefix);
 
   const cj: CompilationJob = {
     getResolvedFiles: () => [...exposed.values()],
@@ -88,4 +95,24 @@ async function writeExposed(exposedJob: CompilationJob) {
     await fs.mkdir(path.dirname(file.absolutePath), { recursive: true });
     await fs.writeFile(file.absolutePath, file.content.rawContent);
   }
+}
+
+async function getMatcher(config: HardhatConfig) {
+  const { isMatch } = await import('micromatch');
+  const path = await import('path');
+
+  const sourcesDir = path.relative(config.paths.root, config.paths.sources);
+  const includePatterns = config.exposed.include;
+  const excludePatterns = config.exposed.exclude;
+
+  return function (sourceName: string) {
+    if (!sourceName.startsWith(sourcesDir)) {
+      return false;
+    }
+    sourceName = path.relative(sourcesDir, sourceName);
+    return (
+      includePatterns.some(p => isMatch(sourceName, p)) &&
+      !excludePatterns.some(p => isMatch(sourceName, p))
+    );
+  };
 }

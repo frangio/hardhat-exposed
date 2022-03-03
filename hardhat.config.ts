@@ -7,4 +7,7 @@ import type { HardhatUserConfig } from 'hardhat/config';
 
 export default <HardhatUserConfig> {
   solidity: '0.8.4',
+  exposed: {
+    exclude: ['Excluded.sol'],
+  },
 };

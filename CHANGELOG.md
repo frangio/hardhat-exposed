@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3
+
+- Add `include` and `exclude` config options.
+
 ## 0.2.2
 
 - Fix clashes of overloaded function names with different storage pointer types.

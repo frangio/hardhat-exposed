@@ -5,12 +5,16 @@ declare module "hardhat/types/config" {
   export interface HardhatUserConfig {
     exposed?: {
       prefix?: string;
+      exclude?: string[];
+      include?: string[];
     };
   }
 
   export interface HardhatConfig {
     exposed: {
       prefix?: string;
+      exclude: string[];
+      include: string[];
     };
   }
 }

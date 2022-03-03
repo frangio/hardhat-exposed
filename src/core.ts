@@ -23,12 +23,12 @@ export const exposedPath = path.join(rootPath, 'contracts-exposed');
 const exposedVersionPragma = '>=0.6.0';
 const defaultPrefix = '$';
 
-export function getExposed(solcOutput: SolcOutput, isUserFile: (sourceName: string) => boolean, prefix?: string): Map<string, ResolvedFile> {
+export function getExposed(solcOutput: SolcOutput, include: (sourceName: string) => boolean, prefix?: string): Map<string, ResolvedFile> {
   const res = new Map<string, ResolvedFile>();
   const contractMap = mapContracts(solcOutput);
 
   for (const { ast } of Object.values(solcOutput.sources)) {
-    if (!isUserFile(ast.absolutePath)) {
+    if (!include(ast.absolutePath)) {
       continue;
     }
     const destPath = path.join(exposedPath, path.relative(rootRelativeSourcesPath, ast.absolutePath));

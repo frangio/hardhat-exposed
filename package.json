@@ -20,12 +20,14 @@
   },
   "dependencies": {
     "array.prototype.flatmap": "^1.2.4",
+    "micromatch": "^4.0.4",
     "solidity-ast": "^0.4.25"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-truffle5": "^2.0.0",
     "@nomiclabs/hardhat-web3": "^2.0.0",
+    "@types/micromatch": "^4.0.2",
     "@types/mocha": "^7.0.2",
     "@types/node": "^10.17.60",
     "ava": "^4.0.1",
