@@ -3,3 +3,4 @@ node_modules
 /artifacts
 /cache
 /contracts-exposed
+.DS_Store
