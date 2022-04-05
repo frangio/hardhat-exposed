@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+struct S {
+    uint x;
+}
+
 contract Foo {
     function _testFoo() internal pure returns (uint) {
         return 0xf00;
@@ -8,10 +12,6 @@ contract Foo {
 
     function _testString() internal pure returns (string memory) {
         return "foo";
-    }
-
-    struct S {
-        uint x;
     }
 
     S s;
