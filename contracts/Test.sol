@@ -60,6 +60,15 @@ library Lib {
     function _testExt() external pure returns (uint) {
         return 0x11b;
     }
+
+    function _testStructStorageInput(S storage t)
+        internal
+        view
+        returns (uint)
+    {
+        return t.x;
+    }
+
 }
 
 interface Iface {
