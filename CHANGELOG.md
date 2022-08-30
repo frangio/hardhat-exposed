@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4
+
+- Fix handling of private functions.
+
 ## 0.2.3
 
 - Add `include` and `exclude` config options.
