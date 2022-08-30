@@ -69,6 +69,7 @@ library Lib {
         return t.x;
     }
 
+    function _notExposable() private {}
 }
 
 interface Iface {
