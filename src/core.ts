@@ -224,6 +224,7 @@ function notNull<T>(value: T): value is NonNullable<T> {
 
 function isExternalizable(fnDef: FunctionDefinition): boolean {
   return fnDef.kind !== 'constructor'
+    && fnDef.visibility !== 'private'
     && fnDef.implemented
     && !fnDef.returnParameters.parameters.some(p => p.typeName?.nodeType === 'Mapping');
 }
