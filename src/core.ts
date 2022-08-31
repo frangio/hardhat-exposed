@@ -97,7 +97,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
           contractHeader.join(' '),
           spaceBetween(
             ...getAllStorageArguments(externalizableFunctions).map(a => [
-              `${a.storageType}[] public ${prefix}${a.storageVar};`,
+              `mapping(uint256 => ${a.storageType}) public ${prefix}${a.storageVar};`,
             ]),
             makeConstructor(c, contractMap),
             ...getInternalVariables(c, contractMap).map(v => {
