@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Use mapping instead of array to avoid out-of-bound checks for storage objects
+
 ## 0.2.4
 
 - Fix handling of private functions.
