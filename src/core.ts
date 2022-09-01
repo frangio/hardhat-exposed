@@ -101,9 +101,13 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
               `mapping(uint256 => ${a.storageType}) internal ${prefix}${a.storageVar};`,
             ]),
             // events for internal returns
+
             ...externalizableFunctions.filter(fn => isNonPayableWithReturns(fn)).map(fn => {
-              const name = clashingFunctions[getFunctionId(fn)] === 1 ? fn.name : getFunctionNameStorageQualified(fn);
-              return [ `event ${prefix}${name}Return(${fn.returnParameters.parameters.map((p, i) => getVarType(p, null) + ` arg${i}`).join(', ')});` ];
+              const fnName = clashingFunctions[getFunctionId(fn)] === 1 ? fn.name : getFunctionNameStorageQualified(fn);
+              const fnArgs = getFunctionArguments(fn);
+              const evName = `${prefix}${fnName}${['', ...fnArgs.map(a => a.type)].join('_')}_ReturnEvent`;
+
+              return [ `event ${evName}(${fn.returnParameters.parameters.map((p, i) => getVarType(p, null) + ` arg${i}`).join(', ')});` ];
             }),
             // constructor
             makeConstructor(c, contractMap),
@@ -125,17 +129,18 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
             ]),
             // external functions
             ...externalizableFunctions.map(fn => {
-              const name = clashingFunctions[getFunctionId(fn)] === 1 ? fn.name : getFunctionNameStorageQualified(fn);
-              const args = getFunctionArguments(fn);
-              const addEvent = isNonPayableWithReturns(fn);
+              const fnName = clashingFunctions[getFunctionId(fn)] === 1 ? fn.name : getFunctionNameStorageQualified(fn);
+              const fnArgs = getFunctionArguments(fn);
+              const evName = isNonPayableWithReturns(fn) && `${prefix}${fnName}${['', ...fnArgs.map(a => a.type)].join('_')}_ReturnEvent`;
+
               // function header
               const header = [
                 'function',
-                `${prefix}${name}(${args.map(a => `${a.type} ${a.name}`)})`,
+                `${prefix}${fnName}(${fnArgs.map(a => `${a.type} ${a.name}`)})`,
                 'external',
               ];
               if (fn.stateMutability !== 'nonpayable') {
-                if (fn.stateMutability === 'pure' && args.some(a => a.storageVar)) {
+                if (fn.stateMutability === 'pure' && fnArgs.some(a => a.storageVar)) {
                   header.push('view');
                 } else {
                   header.push(fn.stateMutability);
@@ -146,13 +151,13 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
               }
               header.push('{');
               // function body
-              const body = addEvent ? [
+              const body = evName ? [
                 `(${fn.returnParameters.parameters.map((p, i) => getVarType(p, 'memory') + ` ret${i}`).join(', ')}) = ` +
-                `${isLibrary ? c.name : 'super'}.${fn.name}(${args.map(a => a.storageVar ? `${prefix}${a.storageVar}[${a.name}]` : a.name)});`,
-                `emit ${prefix}${name}Return(${fn.returnParameters.parameters.map((p, i) => `ret${i}`).join(', ')});`,
+                `${isLibrary ? c.name : 'super'}.${fn.name}(${fnArgs.map(a => a.storageVar ? `${prefix}${a.storageVar}[${a.name}]` : a.name)});`,
+                `emit ${evName}(${fn.returnParameters.parameters.map((p, i) => `ret${i}`).join(', ')});`,
                 `return (${fn.returnParameters.parameters.map((p, i) => `ret${i}`).join(', ')});`,
               ] : [
-                `return ${isLibrary ? c.name : 'super'}.${fn.name}(${args.map(a => a.storageVar ? `${prefix}${a.storageVar}[${a.name}]` : a.name)});`,
+                `return ${isLibrary ? c.name : 'super'}.${fn.name}(${fnArgs.map(a => a.storageVar ? `${prefix}${a.storageVar}[${a.name}]` : a.name)});`,
               ];
               // return function
               return [ header.join(' '), body, `}` ];
