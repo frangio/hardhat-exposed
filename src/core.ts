@@ -268,7 +268,7 @@ function getFunctionArguments(fnDef: FunctionDefinition): Argument[] {
       const storageType = getVarType(p, null);
       const storageVar = 'v_' + storageType.replace(/[^0-9a-zA-Z$_]+/g, '_');
       // The argument is an index to an array in storage.
-      return { name, type: 'uint', storageVar, storageType };
+      return { name, type: 'uint256', storageVar, storageType };
     } else {
       const type = getVarType(p, 'calldata');
       return { name, type };
