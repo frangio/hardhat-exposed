@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- Use mapping instead of array to avoid out-of-bound checks for storage objects
+- **Breaking change**: Make storage arrays internal as some storage types cannot be returned.
+- Use mapping instead of array to avoid out-of-bound checks for storage objects.
 
 ## 0.2.4
 
