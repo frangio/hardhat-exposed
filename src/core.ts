@@ -200,7 +200,8 @@ function getFunctionId(fn: FunctionDefinition): string {
 
 function getFunctionNameQualified(fn: FunctionDefinition, onlyStorage: boolean = true): string {
   return fn.name + (onlyStorage ? getStorageArguments(fn) : getFunctionArguments(fn))
-    .map(a => (a.storageType ?? a.type).replace('.', '_'))
+    .map(arg => arg.storageType ?? arg.type)
+    .map(type => type.replace(/ .*/,'').replace(/[^0-9a-zA-Z$_]+/g, '_')) // sanitize
     .join('_')
     .replace(/^./, '_$&');
 }
