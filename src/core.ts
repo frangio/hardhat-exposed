@@ -105,7 +105,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
             ...externalizableFunctions.filter(fn => isNonPayableWithReturns(fn)).map(fn => {
               const fnName = clashingFunctions[getFunctionId(fn)] === 1 ? fn.name : getFunctionNameStorageQualified(fn);
               const fnArgs = getFunctionArguments(fn);
-              const evName = `${prefix}${fnName}${['', ...fnArgs.map(a => a.type)].join('_')}_ReturnEvent`;
+              const evName = `${prefix}${[ fnName, ...fnArgs.map(a => a.type.split(' ').slice(0, 1).join('').replace(/[\.\[\]]/g, '_')), 'ReturnEvent' ].join('_')}`;
 
               return [ `event ${evName}(${fn.returnParameters.parameters.map((p, i) => getVarType(p, null) + ` arg${i}`).join(', ')});` ];
             }),
@@ -131,7 +131,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
             ...externalizableFunctions.map(fn => {
               const fnName = clashingFunctions[getFunctionId(fn)] === 1 ? fn.name : getFunctionNameStorageQualified(fn);
               const fnArgs = getFunctionArguments(fn);
-              const evName = isNonPayableWithReturns(fn) && `${prefix}${fnName}${['', ...fnArgs.map(a => a.type)].join('_')}_ReturnEvent`;
+              const evName = isNonPayableWithReturns(fn) && `${prefix}${[ fnName, ...fnArgs.map(a => a.type.split(' ').slice(0, 1).join('').replace(/[\.\[\]]/g, '_')), 'ReturnEvent' ].join('_')}`;
 
               // function header
               const header = [
