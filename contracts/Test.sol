@@ -191,3 +191,11 @@ contract WithVars {
         var8[1][true].push(Struct({a: 11}));
     }
 }
+
+contract WithInternalReturns {
+    uint256 private counter = 0;
+
+    function incrementInternal() internal returns (uint256) {
+        return counter++;
+    }
+}
