@@ -226,7 +226,8 @@ function isExternalizable(fnDef: FunctionDefinition): boolean {
   return fnDef.kind !== 'constructor'
     && fnDef.visibility !== 'private'
     && fnDef.implemented
-    && !fnDef.returnParameters.parameters.some(p => p.typeName?.nodeType === 'Mapping');
+    && !fnDef.parameters.parameters.some(p => p.typeName?.nodeType === 'FunctionTypeName')
+    && !fnDef.returnParameters.parameters.some(p => p.typeName?.nodeType === 'Mapping' || p.typeName?.nodeType === 'FunctionTypeName');
 }
 
 interface Argument {

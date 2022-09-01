@@ -124,6 +124,8 @@ contract Types {
     function _testContractType(Types t) internal {}
 
     function _testMappingType(mapping(uint => uint) storage m) internal {}
+
+    function _testFunctionType(function(uint256, uint256) view returns (uint256) f) internal {}
 }
 
 contract ConstructorStorageLocation {
