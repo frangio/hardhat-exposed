@@ -199,3 +199,4 @@ contract WithInternalReturns {
         return counter++;
     }
 }
+

@@ -5,6 +5,7 @@
 - **Breaking change**: Make storage arrays internal as some storage types cannot be returned.
 - Use mapping instead of array to avoid out-of-bound checks for storage objects.
 - Ignore functions with functional parameters.
+- Emit event with the return parameters when mocking of "internal payable" and "internal nonpayable" functions.
 
 ## 0.2.4
 
