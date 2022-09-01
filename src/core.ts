@@ -85,19 +85,19 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
         contractHeader.push('{');
 
         const externalizableFunctions = getFunctions(c, contractMap, isLibrary ? 'all' : 'internal').filter(isExternalizable);
-        const returnedEventFunctions = externalizableFunctions.filter(fn => isInternalNonViewWithReturns(fn));
-
-        const clashingEvents: Record<string, number> = {};
-        for (const fn of returnedEventFunctions) {
-          clashingEvents[fn.name] ??= 0;
-          clashingEvents[fn.name] += 1;
-        }
+        const returnedEventFunctions = externalizableFunctions.filter(fn => isNonViewWithReturns(fn));
 
         const clashingFunctions: Record<string, number> = {};
         for (const fn of externalizableFunctions) {
           const id = getFunctionId(fn);
           clashingFunctions[id] ??= 0;
           clashingFunctions[id] += 1;
+        }
+
+        const clashingEvents: Record<string, number> = {};
+        for (const fn of returnedEventFunctions) {
+          clashingEvents[fn.name] ??= 0;
+          clashingEvents[fn.name] += 1;
         }
 
         return [
@@ -136,7 +136,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
             ...externalizableFunctions.map(fn => {
               const fnName = clashingFunctions[getFunctionId(fn)] === 1 ? fn.name : getFunctionNameQualified(fn);
               const fnArgs = getFunctionArguments(fn);
-              const evName = isInternalNonViewWithReturns(fn) && (clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, false));
+              const evName = isNonViewWithReturns(fn) && (clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, false));
 
               // function header
               const header = [
@@ -256,7 +256,7 @@ function isExternalizable(fnDef: FunctionDefinition): boolean {
     && !fnDef.returnParameters.parameters.some(p => p.typeName?.nodeType === 'Mapping' || p.typeName?.nodeType === 'FunctionTypeName');
 }
 
-function isInternalNonViewWithReturns(fnDef: FunctionDefinition): boolean {
+function isNonViewWithReturns(fnDef: FunctionDefinition): boolean {
   return [ 'payable', 'nonpayable' ].includes(fnDef.stateMutability) && fnDef.returnParameters.parameters.length > 0
 }
 
