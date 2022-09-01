@@ -198,5 +198,12 @@ contract WithInternalReturns {
     function incrementInternal() internal returns (uint256) {
         return counter++;
     }
-}
 
+    function someOverriden(uint256) internal returns (bool) {
+        return true;
+    }
+
+    function someOverriden(bytes32) internal returns (bool) {
+        return true;
+    }
+}
