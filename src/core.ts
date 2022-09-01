@@ -109,7 +109,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
             ]),
             // events for internal returns
             ...returnedEventFunctions.map(fn => {
-              const evName = clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, true);
+              const evName = clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, false);
               return [
                 `event ${prefix}${evName}_Returned(${fn.returnParameters.parameters.map((p, i) => getVarType(p, null) + ` arg${i}`).join(', ')});`
               ]
@@ -136,7 +136,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
             ...externalizableFunctions.map(fn => {
               const fnName = clashingFunctions[getFunctionId(fn)] === 1 ? fn.name : getFunctionNameQualified(fn);
               const fnArgs = getFunctionArguments(fn);
-              const evName = isInternalNonViewWithReturns(fn) && (clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, true));
+              const evName = isInternalNonViewWithReturns(fn) && (clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, false));
 
               // function header
               const header = [
@@ -198,8 +198,8 @@ function getFunctionId(fn: FunctionDefinition): string {
   return fn.name + nonStorageArgs.map(a => a.type).join('');
 }
 
-function getFunctionNameQualified(fn: FunctionDefinition, allArgs: boolean = false): string {
-  return fn.name + (allArgs ? getFunctionArguments(fn) : getStorageArguments(fn))
+function getFunctionNameQualified(fn: FunctionDefinition, onlyStorage: boolean = true): string {
+  return fn.name + (onlyStorage ? getStorageArguments(fn) : getFunctionArguments(fn))
     .map(a => (a.storageType ?? a.type).replace('.', '_'))
     .join('_')
     .replace(/^./, '_$&');
