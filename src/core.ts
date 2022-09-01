@@ -101,7 +101,6 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
               `mapping(uint256 => ${a.storageType}) internal ${prefix}${a.storageVar};`,
             ]),
             // events for internal returns
-
             ...externalizableFunctions.filter(fn => isNonPayableWithReturns(fn)).map(fn => {
               const fnName = clashingFunctions[getFunctionId(fn)] === 1 ? fn.name : getFunctionNameStorageQualified(fn);
               const fnArgs = getFunctionArguments(fn);
