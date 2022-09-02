@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add a receive function to the produced contracts for ether handling
+
 ## 0.2.5
 
 - **Breaking change**: Make storage arrays internal as some storage types cannot be returned.

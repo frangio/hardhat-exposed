@@ -207,3 +207,7 @@ contract WithInternalReturns {
         return true;
     }
 }
+
+contract HasReceiveFunction {
+    receive() external payable {}
+}

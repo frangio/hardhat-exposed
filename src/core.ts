@@ -2,7 +2,7 @@ import hre from 'hardhat';
 import path from 'path';
 import 'array.prototype.flatmap/auto';
 
-import { SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName } from 'solidity-ast';
+import { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName } from 'solidity-ast';
 import { findAll } from 'solidity-ast/utils';
 import { formatLines, spaceBetween } from './utils/format-lines';
 import { FileContent, ResolvedFile } from 'hardhat/types';
@@ -84,7 +84,8 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
         }
         contractHeader.push('{');
 
-        const externalizableFunctions = getFunctions(c, contractMap, isLibrary ? 'all' : 'internal').filter(isExternalizable);
+        const hasReceiveFunction = getFunctions(c, contractMap, [ 'external' ]).some(fn => fn.kind === 'receive');
+        const externalizableFunctions = getFunctions(c, contractMap, !isLibrary && [ 'internal' ]).filter(isExternalizable);
         const returnedEventFunctions = externalizableFunctions.filter(fn => isNonViewWithReturns(fn));
 
         const clashingFunctions: Record<string, number> = {};
@@ -167,6 +168,8 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
               // return function
               return [ header.join(' '), body, `}` ];
             }),
+            // receive function
+            !hasReceiveFunction ? [ 'receive() external payable {}' ]: [],
           ),
           `}`,
         ]
@@ -364,7 +367,7 @@ function getVarGetterReturnType(v: VariableDeclaration): string {
   return getType(t, 'memory');
 }
 
-function getFunctions(contract: ContractDefinition, contractMap: ContractMap, subset: 'all' | 'internal'): FunctionDefinition[] {
+function getFunctions(contract: ContractDefinition, contractMap: ContractMap, subset: Visibility[] | false = false): FunctionDefinition[] {
   const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
 
   const overriden = new Set<number>();
@@ -372,10 +375,8 @@ function getFunctions(contract: ContractDefinition, contractMap: ContractMap, su
 
   for (const parent of parents) {
     for (const fn of findAll('FunctionDefinition', parent)) {
-      if (!overriden.has(fn.id)) {
-        if (subset === 'all' || fn.visibility === subset) {
-          res.push(fn);
-        }
+      if (!overriden.has(fn.id) && (!subset || subset.includes(fn.visibility))) {
+        res.push(fn);
       }
       for (const b of fn.baseFunctions ?? []) {
         overriden.add(b);
