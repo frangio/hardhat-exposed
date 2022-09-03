@@ -151,6 +151,8 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
                 } else {
                   header.push(fn.stateMutability);
                 }
+              } else if (isLibrary) {
+                header.push('payable');
               }
               if (fn.returnParameters.parameters.length > 0) {
                 header.push(`returns (${fn.returnParameters.parameters.map(p => getVarType(p, 'memory')).join(', ')})`);
