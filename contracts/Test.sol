@@ -199,11 +199,13 @@ contract WithInternalReturns {
         return counter++;
     }
 
-    function someOverriden(uint256) internal returns (bool) {
+    function someOverloaded(uint256) internal returns (bool) {
+        counter++;
         return true;
     }
 
-    function someOverriden(bytes32) internal returns (bool) {
+    function someOverloaded(bytes32) internal returns (bool) {
+        counter++;
         return true;
     }
 }
