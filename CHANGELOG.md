@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.6
 
 - Add a receive function to the produced contracts for ether handling
 
