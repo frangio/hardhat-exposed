@@ -69,6 +69,10 @@ library Lib {
         return t.x;
     }
 
+    function _testNonView() internal returns (uint) {
+        return msg.value;
+    }
+
     function _notExposable() private {}
 }
 
