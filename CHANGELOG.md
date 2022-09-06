@@ -1,8 +1,12 @@
 # Changelog
 
+## 0.2.7
+
+- Make non-view library functions payable.
+
 ## 0.2.6
 
-- Add a receive function to the produced contracts for ether handling
+- Add a receive function to the produced contracts for ether handling.
 
 ## 0.2.5
 
