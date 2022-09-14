@@ -103,6 +103,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
 
         return [
           contractHeader.join(' '),
+          [`bytes32 public __hh_exposed_bytecode_marker = "hardhat-exposed";\n`],
           spaceBetween(
             // slots for storage function parameters
             ...getAllStorageArguments(externalizableFunctions).map(a => [
