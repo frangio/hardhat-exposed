@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.8
+
+- Add bytecode marker to fix Etherscan verification interference.
+
 ## 0.2.7
 
 - Make non-view library functions payable.
