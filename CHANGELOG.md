@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.10
+
+- Fix visibility of getters for immutable variables.
+
 ## 0.2.9
 
 - Mark constant internal variables as pure.

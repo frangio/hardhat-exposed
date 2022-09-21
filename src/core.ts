@@ -124,7 +124,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
                 'function',
                 `${prefix}${v.name}(${getVarGetterArgs(v).map(a => `${a.type} ${a.name}`).join(', ')})`,
                 'external',
-                v.mutability === 'mutable' ? 'view' : 'pure',
+                v.mutability === 'mutable' || (v.mutability === 'immutable' && !v.value) ? 'view' : 'pure',
                 'returns',
                 `(${getVarGetterReturnType(v)})`,
                 '{'

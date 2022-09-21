@@ -47,6 +47,12 @@ contract Foo {
 
     uint internal _x1;
     uint constant internal _x2 = 42;
+    uint immutable internal _x3 = 42;
+    uint immutable internal _x4;
+
+    constructor() {
+        _x4 = 42;
+    }
 }
 
 contract Bar is Foo {
