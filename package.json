@@ -1,6 +1,6 @@
 {
   "name": "hardhat-exposed",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "Automatically expose internal functions for smart contract testing",
   "license": "MIT",
   "author": "Francisco Giordano <frangio.1@gmail.com>",
