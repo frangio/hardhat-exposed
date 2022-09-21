@@ -44,6 +44,9 @@ contract Foo {
 
     function _testClash(S storage t) internal {}
     function _testClash(Z storage t) internal {}
+
+    uint internal _x1;
+    uint constant internal _x2 = 42;
 }
 
 contract Bar is Foo {

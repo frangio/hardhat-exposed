@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.9
+
+- Mark constant internal variables as pure.
+
 ## 0.2.8
 
 - Add bytecode marker to fix Etherscan verification interference.
