@@ -38,6 +38,16 @@ contract Foo {
         return m;
     }
 
+    struct SM {
+        mapping (uint => uint) m;
+    }
+
+    SM internal sm;
+
+    function _testReturnStructMapping() internal view returns (SM storage) {
+        return sm;
+    }
+
     struct Z {
         bool z;
     }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.13
+
+- Detect and avoid exposing structs that contain mappings.
+
 ## 0.2.12
 
 - Partially fix missing imports from inherited functions.

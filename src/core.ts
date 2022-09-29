@@ -3,7 +3,7 @@ import path from 'path';
 import 'array.prototype.flatmap/auto';
 
 import { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName } from 'solidity-ast';
-import { findAll } from 'solidity-ast/utils';
+import { findAll, astDereferencer, ASTDereferencer } from 'solidity-ast/utils';
 import { formatLines, spaceBetween } from './utils/format-lines';
 import { FileContent, ResolvedFile } from 'hardhat/types';
 
@@ -25,6 +25,8 @@ const defaultPrefix = '$';
 
 export function getExposed(solcOutput: SolcOutput, include: (sourceName: string) => boolean, prefix?: string): Map<string, ResolvedFile> {
   const res = new Map<string, ResolvedFile>();
+  const deref = astDereferencer(solcOutput);
+  // [TODO] replace contractMap with deref
   const contractMap = mapContracts(solcOutput);
 
   for (const { ast } of Object.values(solcOutput.sources)) {
@@ -32,17 +34,17 @@ export function getExposed(solcOutput: SolcOutput, include: (sourceName: string)
       continue;
     }
     const destPath = path.join(exposedPath, path.relative(rootRelativeSourcesPath, ast.absolutePath));
-    res.set(destPath, getExposedFile(destPath, ast, contractMap, prefix));
+    res.set(destPath, getExposedFile(destPath, ast, contractMap, deref, prefix));
   }
 
   return res;
 }
 
-function getExposedFile(absolutePath: string, ast: SourceUnit, contractMap: ContractMap, prefix?: string): ResolvedFile {
+function getExposedFile(absolutePath: string, ast: SourceUnit, contractMap: ContractMap, deref: ASTDereferencer, prefix?: string): ResolvedFile {
   const sourceName = path.relative(rootPath, absolutePath);
 
   const relativizePath = (p: string) => path.relative(path.dirname(absolutePath), p).replace(/\\/g, '/');
-  const content = getExposedContent(ast, relativizePath, contractMap, prefix);
+  const content = getExposedContent(ast, relativizePath, contractMap, deref, prefix);
   const contentHash = createNonCryptographicHashBasedIdentifier(Buffer.from(content.rawContent)).toString('hex');
 
   return {
@@ -55,7 +57,7 @@ function getExposedFile(absolutePath: string, ast: SourceUnit, contractMap: Cont
   };
 }
 
-function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => string, contractMap: ContractMap, prefix = defaultPrefix): FileContent {
+function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => string, contractMap: ContractMap, deref: ASTDereferencer, prefix = defaultPrefix): FileContent {
   if (prefix === '' || /^\d|[^0-9a-z_$]/i.test(prefix)) {
     throw new Error(`Prefix '${prefix}' is not valid`);
   }
@@ -85,8 +87,8 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
         contractHeader.push('{');
 
         const hasReceiveFunction = getFunctions(c, contractMap, [ 'external' ]).some(fn => fn.kind === 'receive');
-        const externalizableVariables = getVariables(c, contractMap, !isLibrary && [ 'internal' ]);
-        const externalizableFunctions = getFunctions(c, contractMap, !isLibrary && [ 'internal' ]).filter(isExternalizable);
+        const externalizableVariables = getVariables(c, contractMap, !isLibrary && [ 'internal' ]).filter(v => v.typeName?.nodeType !== 'UserDefinedTypeName' || isTypeExternalizable(v.typeName, deref));
+        const externalizableFunctions = getFunctions(c, contractMap, !isLibrary && [ 'internal' ]).filter(f => isExternalizable(f, deref));
         const returnedEventFunctions = externalizableFunctions.filter(fn => isNonViewWithReturns(fn));
 
         const clashingFunctions: Record<string, number> = {};
@@ -262,12 +264,27 @@ function notNull<T>(value: T): value is NonNullable<T> {
   return value != undefined;
 }
 
-function isExternalizable(fnDef: FunctionDefinition): boolean {
+function isExternalizable(fnDef: FunctionDefinition, deref: ASTDereferencer): boolean {
   return fnDef.kind !== 'constructor'
     && fnDef.visibility !== 'private'
     && fnDef.implemented
     && !fnDef.parameters.parameters.some(p => p.typeName?.nodeType === 'FunctionTypeName')
-    && !fnDef.returnParameters.parameters.some(p => p.typeName?.nodeType === 'Mapping' || p.typeName?.nodeType === 'FunctionTypeName');
+    && fnDef.returnParameters.parameters.every(p => isTypeExternalizable(p.typeName, deref));
+}
+
+function isTypeExternalizable(typeName: TypeName | null | undefined, deref: ASTDereferencer): boolean {
+  if (typeName == undefined) {
+    return true;
+  } if (typeName.nodeType === 'UserDefinedTypeName') {
+    const typeDef = deref(['StructDefinition', 'EnumDefinition', 'ContractDefinition'], typeName.referencedDeclaration);
+    if (typeDef.nodeType !== 'StructDefinition') {
+      return true;
+    } else {
+      return typeDef.members.every(m => isTypeExternalizable(m.typeName, deref));
+    }
+  } else {
+    return typeName.nodeType !== 'Mapping' && typeName.nodeType !== 'FunctionTypeName';
+  }
 }
 
 function isNonViewWithReturns(fnDef: FunctionDefinition): boolean {
