@@ -62,6 +62,9 @@ contract Bar is Foo {
 }
 
 library Lib {
+    bytes32 internal constant INTERNAL_VAR = 0x00;
+    bytes32 public constant PUBLIC_VAR = 0x00;
+
     function _testLib() internal pure returns (uint) {
         return 0x11b;
     }

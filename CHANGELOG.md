@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.11
+
+- Fix getters for library variables.
+
 ## 0.2.10
 
 - Fix visibility of getters for immutable variables.

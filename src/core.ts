@@ -85,6 +85,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
         contractHeader.push('{');
 
         const hasReceiveFunction = getFunctions(c, contractMap, [ 'external' ]).some(fn => fn.kind === 'receive');
+        const externalizableVariables = getVariables(c, contractMap, !isLibrary && [ 'internal' ]);
         const externalizableFunctions = getFunctions(c, contractMap, !isLibrary && [ 'internal' ]).filter(isExternalizable);
         const returnedEventFunctions = externalizableFunctions.filter(fn => isNonViewWithReturns(fn));
 
@@ -119,7 +120,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
             // constructor
             makeConstructor(c, contractMap),
             // accessor to internal variables
-            ...getInternalVariables(c, contractMap).map(v => [
+            ...externalizableVariables.map(v => [
               [
                 'function',
                 `${prefix}${v.name}(${getVarGetterArgs(v).map(a => `${a.type} ${a.name}`).join(', ')})`,
@@ -130,7 +131,7 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
                 '{'
               ].join(' '),
               [
-                `return ${v.name}${getVarGetterArgs(v).map(a => `[${a.name}]`).join('')};`,
+                `return ${isLibrary ? c.name + '.' : ''}${v.name}${getVarGetterArgs(v).map(a => `[${a.name}]`).join('')};`,
               ],
               '}',
             ]),
@@ -332,14 +333,14 @@ function mapContracts(solcOutput: SolcOutput): ContractMap {
   return res;
 }
 
-function getInternalVariables(contract: ContractDefinition, contractMap: ContractMap): VariableDeclaration[] {
+function getVariables(contract: ContractDefinition, contractMap: ContractMap, subset: Visibility[] | false = false): VariableDeclaration[] {
   const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
 
   const res = [];
 
   for (const parent of parents) {
     for (const v of findAll('VariableDeclaration', parent)) {
-      if (v.stateVariable && v.visibility === 'internal') {
+      if (v.stateVariable && (!subset || subset.includes(v.visibility))) {
         res.push(v);
       }
     }
