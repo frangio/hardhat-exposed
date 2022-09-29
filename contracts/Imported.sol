@@ -5,6 +5,6 @@ import { Imported2 } from './Imported2.sol';
 
 contract NotImported {}
 
-contract Imported is Imported2 {
+contract Imported /* [TODO] is Imported2 */ {
     function _testNotImported(NotImported ni) internal {}
 }
