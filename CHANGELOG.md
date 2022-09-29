@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.12
+
+- Partially fix missing imports from inherited functions.
+
 ## 0.2.11
 
 - Fix getters for library variables.

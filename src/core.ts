@@ -41,13 +41,8 @@ export function getExposed(solcOutput: SolcOutput, include: (sourceName: string)
 function getExposedFile(absolutePath: string, ast: SourceUnit, contractMap: ContractMap, prefix?: string): ResolvedFile {
   const sourceName = path.relative(rootPath, absolutePath);
 
-  const inputPath = path.relative(path.dirname(absolutePath), ast.absolutePath).replace(/\\/g, '/');
-  const content: FileContent = {
-    rawContent: getExposedContent(ast, inputPath, contractMap, prefix),
-    imports: [inputPath],
-    versionPragmas: [exposedVersionPragma],
-  };
-
+  const relativizePath = (p: string) => path.relative(path.dirname(absolutePath), p).replace(/\\/g, '/');
+  const content = getExposedContent(ast, relativizePath, contractMap, prefix);
   const contentHash = createNonCryptographicHashBasedIdentifier(Buffer.from(content.rawContent)).toString('hex');
 
   return {
@@ -60,18 +55,23 @@ function getExposedFile(absolutePath: string, ast: SourceUnit, contractMap: Cont
   };
 }
 
-function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: ContractMap, prefix = defaultPrefix): string {
+function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => string, contractMap: ContractMap, prefix = defaultPrefix): FileContent {
   if (prefix === '' || /^\d|[^0-9a-z_$]/i.test(prefix)) {
     throw new Error(`Prefix '${prefix}' is not valid`);
   }
 
   const contractPrefix = prefix.replace(/^./, c => c.toUpperCase());
+  const imports = [ast.absolutePath].concat(
+    [...findAll('ImportDirective', ast)]
+      .filter(i => i.symbolAliases.length > 0)
+      .map(i => i.absolutePath),
+  ).map(relativizePath);
 
-  return formatLines(
+  const rawContent = formatLines(
     ...spaceBetween(
       ['// SPDX-License-Identifier: UNLICENSED'],
       [`pragma solidity ${exposedVersionPragma};`],
-      [`import "${inputPath}";`],
+      imports.map(i => `import "${i}";`),
 
       ...Array.from(findAll('ContractDefinition', ast), c => {
         const isLibrary = c.contractKind === 'library';
@@ -180,6 +180,12 @@ function getExposedContent(ast: SourceUnit, inputPath: string, contractMap: Cont
       }),
     )
   )
+
+  return {
+    rawContent,
+    imports,
+    versionPragmas: [exposedVersionPragma],
+  };
 }
 
 // Note this is not the same as contract.fullyImplemented, because this does

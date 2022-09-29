@@ -229,3 +229,7 @@ contract WithInternalReturns {
 contract HasReceiveFunction {
     receive() external payable {}
 }
+
+import { Imported } from './Imported.sol';
+
+contract ImportedChild is Imported {}
