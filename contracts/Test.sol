@@ -59,6 +59,7 @@ contract Foo {
     uint constant internal _x2 = 42;
     uint immutable internal _x3 = 42;
     uint immutable internal _x4;
+    uint private _x5;
 
     constructor() {
         _x4 = 42;
@@ -72,6 +73,7 @@ contract Bar is Foo {
 }
 
 library Lib {
+    bytes32 private constant PRIVATE_VAR = 0x00;
     bytes32 internal constant INTERNAL_VAR = 0x00;
     bytes32 public constant PUBLIC_VAR = 0x00;
 

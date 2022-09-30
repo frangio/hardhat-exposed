@@ -86,9 +86,11 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
         }
         contractHeader.push('{');
 
+        const subset: Visibility[] = isLibrary ? [ 'internal', 'public', 'external' ] : ['internal'];
+
         const hasReceiveFunction = getFunctions(c, contractMap, [ 'external' ]).some(fn => fn.kind === 'receive');
-        const externalizableVariables = getVariables(c, contractMap, !isLibrary && [ 'internal' ]).filter(v => v.typeName?.nodeType !== 'UserDefinedTypeName' || isTypeExternalizable(v.typeName, deref));
-        const externalizableFunctions = getFunctions(c, contractMap, !isLibrary && [ 'internal' ]).filter(f => isExternalizable(f, deref));
+        const externalizableVariables = getVariables(c, contractMap, subset).filter(v => v.typeName?.nodeType !== 'UserDefinedTypeName' || isTypeExternalizable(v.typeName, deref));
+        const externalizableFunctions = getFunctions(c, contractMap, subset).filter(f => isExternalizable(f, deref));
         const returnedEventFunctions = externalizableFunctions.filter(fn => isNonViewWithReturns(fn));
 
         const clashingFunctions: Record<string, number> = {};
@@ -356,7 +358,7 @@ function mapContracts(solcOutput: SolcOutput): ContractMap {
   return res;
 }
 
-function getVariables(contract: ContractDefinition, contractMap: ContractMap, subset: Visibility[] | false = false): VariableDeclaration[] {
+function getVariables(contract: ContractDefinition, contractMap: ContractMap, subset?: Visibility[]): VariableDeclaration[] {
   const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
 
   const res = [];
@@ -394,7 +396,7 @@ function getVarGetterReturnType(v: VariableDeclaration): string {
   return getType(t, 'memory');
 }
 
-function getFunctions(contract: ContractDefinition, contractMap: ContractMap, subset: Visibility[] | false = false): FunctionDefinition[] {
+function getFunctions(contract: ContractDefinition, contractMap: ContractMap, subset?: Visibility[]): FunctionDefinition[] {
   const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
 
   const overriden = new Set<number>();

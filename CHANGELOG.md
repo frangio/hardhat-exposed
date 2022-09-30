@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.14
+
+- Remove exposed functions for private variables.
+
 ## 0.2.13
 
 - Detect and avoid exposing structs that contain mappings.
