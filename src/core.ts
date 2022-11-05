@@ -19,7 +19,7 @@ export interface SolcOutput {
 const rootPath = hre.config.paths.root;
 const sourcesPath = hre.config.paths.sources;
 const rootRelativeSourcesPath = path.relative(rootPath, sourcesPath);
-export const exposedPath = path.join(rootPath, 'contracts-exposed');
+export const exposedPath = path.join(rootPath, hre.config.exposed.outDir);
 const exposedVersionPragma = '>=0.6.0';
 const defaultPrefix = '$';
 

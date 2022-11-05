@@ -7,6 +7,7 @@ declare module "hardhat/types/config" {
       prefix?: string;
       exclude?: string[];
       include?: string[];
+      outDir?: string;
     };
   }
 
@@ -15,6 +16,7 @@ declare module "hardhat/types/config" {
       prefix?: string;
       exclude: string[];
       include: string[];
+      outDir: string;
     };
   }
 }
