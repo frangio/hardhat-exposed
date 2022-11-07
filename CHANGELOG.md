@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.15
+
+- Make output directory configurable with `outDir`.
+
 ## 0.2.14
 
 - Remove exposed functions for private variables.
