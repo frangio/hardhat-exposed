@@ -26,25 +26,23 @@ const defaultPrefix = '$';
 export function getExposed(solcOutput: SolcOutput, include: (sourceName: string) => boolean, prefix?: string): Map<string, ResolvedFile> {
   const res = new Map<string, ResolvedFile>();
   const deref = astDereferencer(solcOutput);
-  // [TODO] replace contractMap with deref
-  const contractMap = mapContracts(solcOutput);
 
   for (const { ast } of Object.values(solcOutput.sources)) {
     if (!include(ast.absolutePath)) {
       continue;
     }
     const destPath = path.join(exposedPath, path.relative(rootRelativeSourcesPath, ast.absolutePath));
-    res.set(destPath, getExposedFile(destPath, ast, contractMap, deref, prefix));
+    res.set(destPath, getExposedFile(destPath, ast, deref, prefix));
   }
 
   return res;
 }
 
-function getExposedFile(absolutePath: string, ast: SourceUnit, contractMap: ContractMap, deref: ASTDereferencer, prefix?: string): ResolvedFile {
+function getExposedFile(absolutePath: string, ast: SourceUnit, deref: ASTDereferencer, prefix?: string): ResolvedFile {
   const sourceName = path.relative(rootPath, absolutePath);
 
   const relativizePath = (p: string) => path.relative(path.dirname(absolutePath), p).replace(/\\/g, '/');
-  const content = getExposedContent(ast, relativizePath, contractMap, deref, prefix);
+  const content = getExposedContent(ast, relativizePath, deref, prefix);
   const contentHash = createNonCryptographicHashBasedIdentifier(Buffer.from(content.rawContent)).toString('hex');
 
   return {
@@ -57,7 +55,7 @@ function getExposedFile(absolutePath: string, ast: SourceUnit, contractMap: Cont
   };
 }
 
-function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => string, contractMap: ContractMap, deref: ASTDereferencer, prefix = defaultPrefix): FileContent {
+function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => string, deref: ASTDereferencer, prefix = defaultPrefix): FileContent {
   if (prefix === '' || /^\d|[^0-9a-z_$]/i.test(prefix)) {
     throw new Error(`Prefix '${prefix}' is not valid`);
   }
@@ -78,7 +76,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
       ...Array.from(findAll('ContractDefinition', ast), c => {
         const isLibrary = c.contractKind === 'library';
         const contractHeader = [`contract ${contractPrefix}${c.name}`];
-        if (!areFunctionsFullyImplemented(c, contractMap)) {
+        if (!areFunctionsFullyImplemented(c, deref)) {
           contractHeader.unshift('abstract');
         }
         if (!isLibrary) {
@@ -88,9 +86,9 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
 
         const subset: Visibility[] = isLibrary ? [ 'internal', 'public', 'external' ] : ['internal'];
 
-        const hasReceiveFunction = getFunctions(c, contractMap, [ 'external' ]).some(fn => fn.kind === 'receive');
-        const externalizableVariables = getVariables(c, contractMap, subset).filter(v => v.typeName?.nodeType !== 'UserDefinedTypeName' || isTypeExternalizable(v.typeName, deref));
-        const externalizableFunctions = getFunctions(c, contractMap, subset).filter(f => isExternalizable(f, deref));
+        const hasReceiveFunction = getFunctions(c, deref, [ 'external' ]).some(fn => fn.kind === 'receive');
+        const externalizableVariables = getVariables(c, deref, subset).filter(v => v.typeName?.nodeType !== 'UserDefinedTypeName' || isTypeExternalizable(v.typeName, deref));
+        const externalizableFunctions = getFunctions(c, deref, subset).filter(f => isExternalizable(f, deref));
         const returnedEventFunctions = externalizableFunctions.filter(fn => isNonViewWithReturns(fn));
 
         const clashingFunctions: Record<string, number> = {};
@@ -122,7 +120,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
               ]
             }),
             // constructor
-            makeConstructor(c, contractMap),
+            makeConstructor(c, deref),
             // accessor to internal variables
             ...externalizableVariables.map(v => [
               [
@@ -196,8 +194,8 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
 // not consider missing constructor calls. We don't use contract.abstract
 // because even if a user declares a contract abstract, we want to make it
 // concrete if it is possible.
-function areFunctionsFullyImplemented(contract: ContractDefinition, contractMap: ContractMap): boolean {
-  const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
+function areFunctionsFullyImplemented(contract: ContractDefinition, deref: ASTDereferencer): boolean {
+  const parents = contract.linearizedBaseContracts.map(deref('ContractDefinition'));
   const abstractFunctionIds = new Set(parents.flatMap(p => [...findAll('FunctionDefinition', p)].filter(f => !f.implemented).map(f => f.id)));
   for (const p of parents) {
     for (const f of findAll(['FunctionDefinition', 'VariableDeclaration'], p)) {
@@ -223,8 +221,8 @@ function getFunctionNameQualified(fn: FunctionDefinition, onlyStorage: boolean =
     .replace(/^./, '_$&');
 }
 
-function makeConstructor(contract: ContractDefinition, contractMap: ContractMap): string[] {
-  const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id)).reverse();
+function makeConstructor(contract: ContractDefinition, deref: ASTDereferencer): string[] {
+  const parents = contract.linearizedBaseContracts.map(deref('ContractDefinition')).reverse();
   const parentsWithConstructor = parents.filter(c => getConstructor(c)?.parameters.parameters.length);
   const initializedParentIds = new Set(parents.flatMap(p => [
     ...p.baseContracts.filter(c => c.arguments?.length).map(c => c.id),
@@ -344,22 +342,8 @@ function getType(typeName: TypeName, location: StorageLocation | null): string {
   return type;
 }
 
-type ContractMap = Map<number, ContractDefinition>;
-
-function mapContracts(solcOutput: SolcOutput): ContractMap {
-  const res: ContractMap = new Map();
-
-  for (const { ast } of Object.values(solcOutput.sources)) {
-    for (const contract of findAll('ContractDefinition', ast)) {
-      res.set(contract.id, contract);
-    }
-  }
-
-  return res;
-}
-
-function getVariables(contract: ContractDefinition, contractMap: ContractMap, subset?: Visibility[]): VariableDeclaration[] {
-  const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
+function getVariables(contract: ContractDefinition, deref: ASTDereferencer, subset?: Visibility[]): VariableDeclaration[] {
+  const parents = contract.linearizedBaseContracts.map(deref('ContractDefinition'));
 
   const res = [];
 
@@ -396,8 +380,8 @@ function getVarGetterReturnType(v: VariableDeclaration): string {
   return getType(t, 'memory');
 }
 
-function getFunctions(contract: ContractDefinition, contractMap: ContractMap, subset?: Visibility[]): FunctionDefinition[] {
-  const parents = contract.linearizedBaseContracts.map(id => mustGet(contractMap, id));
+function getFunctions(contract: ContractDefinition, deref: ASTDereferencer, subset?: Visibility[]): FunctionDefinition[] {
+  const parents = contract.linearizedBaseContracts.map(deref('ContractDefinition'));
 
   const overriden = new Set<number>();
   const res = [];

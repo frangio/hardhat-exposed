@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.16
+
+- Minor refactor to internal structures.
+
 ## 0.2.15
 
 - Make output directory configurable with `outDir`.
