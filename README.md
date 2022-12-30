@@ -72,8 +72,13 @@ Arguments that are storage pointers are replaced with an integer that is used as
 
 ## Configuration
 
-The prefix can be configured in your Hardhat config. For example, to use the `X`/`x` prefix
+Include an `exposed` field in your Hardhat config.
 
 ```
-exposed: { prefix: 'x' },
+exposed: {
+  include?: string[] = ['**/*'],
+  exclude?: string[] = [],
+  outDir?: string = 'contracts-exposed',
+  prefix?: string = '$',
+},
 ```
