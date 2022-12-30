@@ -11,10 +11,11 @@ import type {} from './type-extensions';
 
 extendConfig((config, { exposed: userConfig }) => {
   config.exposed = {
-    prefix: userConfig?.prefix,
-    exclude: userConfig?.exclude ?? [],
     include: userConfig?.include ?? ['**/*'],
-    outDir: userConfig?.outDir ?? "contracts-exposed"
+    exclude: userConfig?.exclude ?? [],
+    outDir: userConfig?.outDir ?? "contracts-exposed",
+    prefix: userConfig?.prefix,
+    constructorStructs: userConfig?.constructorStructs,
   };
 });
 
@@ -75,7 +76,7 @@ async function getExposedJob(compilationJob: CompilationJob, output: CompilerOut
   const inputFiles = Object.fromEntries(compilationJob.getResolvedFiles().map(rf => [rf.sourceName, rf.absolutePath]));
 
   const include = await getMatcher(hre.config);
-  const exposed = getExposed(output, include, hre.config.exposed.prefix);
+  const exposed = getExposed(output, include, hre.config.exposed.prefix, hre.config.exposed.constructorStructs);
 
   const cj: CompilationJob = {
     getResolvedFiles: () => [...exposed.values()],

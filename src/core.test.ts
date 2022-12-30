@@ -16,3 +16,13 @@ test('snapshot', async t => {
     t.snapshot(rf.content.rawContent);
   }
 });
+
+test('constructor structs', async t => {
+  const [bip] = await hre.artifacts.getBuildInfoPaths();
+  const bi: BuildInfo = JSON.parse(await fs.readFile(bip!, 'utf8'));
+  const exposed = getExposed(bi.output, sourceName => sourceName === 'contracts/Inheritance.sol', undefined, true);
+  const exposedFiles = [...exposed.values()].sort((a, b) => a.absolutePath.localeCompare(b.absolutePath))
+  for (const rf of exposedFiles) {
+    t.snapshot(rf.content.rawContent);
+  }
+});

@@ -3,7 +3,7 @@ import path from 'path';
 
 import { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName } from 'solidity-ast';
 import { findAll, astDereferencer, ASTDereferencer } from 'solidity-ast/utils';
-import { formatLines, spaceBetween } from './utils/format-lines';
+import { formatLines, Lines, spaceBetween } from './utils/format-lines';
 import { FileContent, ResolvedFile } from 'hardhat/types';
 
 export interface SolcOutput {
@@ -22,7 +22,7 @@ export const exposedPath = path.join(rootPath, hre.config.exposed.outDir);
 const exposedVersionPragma = '>=0.6.0';
 const defaultPrefix = '$';
 
-export function getExposed(solcOutput: SolcOutput, include: (sourceName: string) => boolean, prefix?: string): Map<string, ResolvedFile> {
+export function getExposed(solcOutput: SolcOutput, include: (sourceName: string) => boolean, prefix?: string, constructorStructs?: boolean): Map<string, ResolvedFile> {
   const res = new Map<string, ResolvedFile>();
   const deref = astDereferencer(solcOutput);
 
@@ -31,17 +31,17 @@ export function getExposed(solcOutput: SolcOutput, include: (sourceName: string)
       continue;
     }
     const destPath = path.join(exposedPath, path.relative(rootRelativeSourcesPath, ast.absolutePath));
-    res.set(destPath, getExposedFile(destPath, ast, deref, prefix));
+    res.set(destPath, getExposedFile(destPath, ast, deref, prefix, constructorStructs));
   }
 
   return res;
 }
 
-function getExposedFile(absolutePath: string, ast: SourceUnit, deref: ASTDereferencer, prefix?: string): ResolvedFile {
+function getExposedFile(absolutePath: string, ast: SourceUnit, deref: ASTDereferencer, prefix?: string, constructorStructs?: boolean): ResolvedFile {
   const sourceName = path.relative(rootPath, absolutePath);
 
   const relativizePath = (p: string) => path.relative(path.dirname(absolutePath), p).replace(/\\/g, '/');
-  const content = getExposedContent(ast, relativizePath, deref, prefix);
+  const content = getExposedContent(ast, relativizePath, deref, prefix, constructorStructs);
   const contentHash = createNonCryptographicHashBasedIdentifier(Buffer.from(content.rawContent)).toString('hex');
 
   return {
@@ -54,7 +54,7 @@ function getExposedFile(absolutePath: string, ast: SourceUnit, deref: ASTDerefer
   };
 }
 
-function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => string, deref: ASTDereferencer, prefix = defaultPrefix): FileContent {
+function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => string, deref: ASTDereferencer, prefix = defaultPrefix, constructorStructs = false): FileContent {
   if (prefix === '' || /^\d|[^0-9a-z_$]/i.test(prefix)) {
     throw new Error(`Prefix '${prefix}' is not valid`);
   }
@@ -120,7 +120,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
               ]
             }),
             // constructor
-            makeConstructor(c, deref),
+            makeConstructor(c, deref, constructorStructs),
             // accessor to internal variables
             ...externalizableVariables.map(v => [
               [
@@ -229,7 +229,7 @@ function getFunctionNameQualified(fn: FunctionDefinition, onlyStorage: boolean =
     .replace(/^./, '_$&');
 }
 
-function makeConstructor(contract: ContractDefinition, deref: ASTDereferencer): string[] {
+function makeConstructor(contract: ContractDefinition, deref: ASTDereferencer, constructorStructs: boolean): Lines[] {
   const parents = contract.linearizedBaseContracts.map(deref('ContractDefinition')).reverse();
   const parentsWithConstructor = parents.filter(c => getConstructor(c)?.parameters.parameters.length);
   const initializedParentIds = new Set(parents.flatMap(p => [
@@ -245,19 +245,37 @@ function makeConstructor(contract: ContractDefinition, deref: ASTDereferencer): 
     const args = [];
     for (const a of getConstructor(c)!.parameters.parameters) {
       const name = missingArguments.has(a.name) ? `${c.name}_${a.name}` : a.name;
-      const type = getVarType(a, 'memory');
+      const type = getVarType(a, constructorStructs ? null : 'memory');
       missingArguments.set(name, type);
       args.push(name);
     }
     parentArguments.set(c.name, args);
   }
-  return [
-    [
-      `constructor(${[...missingArguments].map(([name, type]) => `${type} ${name}`).join(', ')})`,
-      ...uninitializedParents.map(p => `${p.name}(${mustGet(parentArguments, p.name).join(', ')})`),
-      '{}'
-    ].join(' '),
-  ];
+
+  if (constructorStructs && missingArguments.size > 0) {
+    return [
+      'struct __constructor_args {',
+          Array.from(
+            missingArguments.entries(),
+            ([name, type]) => `${type} ${name};`,
+          ),
+      '}',
+      '',
+      [
+        'constructor(__constructor_args memory args)',
+        ...uninitializedParents.map(p => `${p.name}(${mustGet(parentArguments, p.name).map(a => `args.${a}`).join(', ')})`),
+        '{}'
+      ].join(' ')
+    ];
+  } else {
+    return [
+      [
+        `constructor(${[...missingArguments].map(([name, type]) => `${type} ${name}`).join(', ')})`,
+        ...uninitializedParents.map(p => `${p.name}(${mustGet(parentArguments, p.name).join(', ')})`),
+        '{}'
+      ].join(' '),
+    ];
+  }
 }
 
 function getConstructor(contract: ContractDefinition): FunctionDefinition | undefined {

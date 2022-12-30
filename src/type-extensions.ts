@@ -4,19 +4,21 @@ import "hardhat/types/runtime";
 declare module "hardhat/types/config" {
   export interface HardhatUserConfig {
     exposed?: {
-      prefix?: string;
-      exclude?: string[];
       include?: string[];
+      exclude?: string[];
       outDir?: string;
+      prefix?: string;
+      constructorStructs?: boolean;
     };
   }
 
   export interface HardhatConfig {
     exposed: {
-      prefix?: string;
-      exclude: string[];
       include: string[];
+      exclude: string[];
       outDir: string;
+      prefix?: string;
+      constructorStructs?: boolean;
     };
   }
 }
