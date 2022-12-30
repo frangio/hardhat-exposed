@@ -1,6 +1,5 @@
 import hre from 'hardhat';
 import path from 'path';
-import 'array.prototype.flatmap/auto';
 
 import { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName } from 'solidity-ast';
 import { findAll, astDereferencer, ASTDereferencer } from 'solidity-ast/utils';

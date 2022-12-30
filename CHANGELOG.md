@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.17
+
+- Remove unnecessary dependency.
+
 ## 0.2.16
 
 - Minor refactor to internal structures.

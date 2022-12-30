@@ -19,7 +19,6 @@
     "test:watch": "hardhat compile --force && ava --watch"
   },
   "dependencies": {
-    "array.prototype.flatmap": "^1.2.4",
     "micromatch": "^4.0.4",
     "solidity-ast": "^0.4.25"
   },
