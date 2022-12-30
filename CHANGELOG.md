@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+- Renamed events for return values from `$<function>_Returned` to `return$<function>`.
+
 ## 0.2.17
 
 - Remove unnecessary dependency.

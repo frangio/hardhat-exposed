@@ -93,7 +93,7 @@ library Lib {
         return t.x;
     }
 
-    function _testNonView() internal returns (uint) {
+    function _testNonView() internal returns (uint value) {
         return msg.value;
     }
 
@@ -235,6 +235,16 @@ contract WithInternalReturns {
     function someOverloaded(bytes32) internal returns (bool) {
         counter++;
         return true;
+    }
+
+    function dynamicReturnType() internal returns (string memory) {
+        counter++;
+        return "a";
+    }
+
+    function multipleReturns(uint256 x) internal returns (uint256, bytes32) {
+        counter++;
+        return (x, keccak256(abi.encode(x)));
     }
 }
 

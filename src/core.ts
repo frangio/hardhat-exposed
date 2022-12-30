@@ -114,8 +114,9 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
             // events for internal returns
             ...returnedEventFunctions.map(fn => {
               const evName = clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, false);
+              const params = getFunctionReturnParameters(fn, null);
               return [
-                `event ${prefix}${evName}_Returned(${fn.returnParameters.parameters.map((p, i) => getVarType(p, null) + ` arg${i}`).join(', ')});`
+                `event return${prefix}${evName}(${params.map(printArgument).join(', ')});`
               ]
             }),
             // constructor
@@ -124,7 +125,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
             ...externalizableVariables.map(v => [
               [
                 'function',
-                `${prefix}${v.name}(${getVarGetterArgs(v).map(a => `${a.type} ${a.name}`).join(', ')})`,
+                `${prefix}${v.name}(${getVarGetterArgs(v).map(printArgument).join(', ')})`,
                 'external',
                 v.mutability === 'mutable' || (v.mutability === 'immutable' && !v.value) ? 'view' : 'pure',
                 'returns',
@@ -140,14 +141,16 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
             ...externalizableFunctions.map(fn => {
               const fnName = clashingFunctions[getFunctionId(fn)] === 1 ? fn.name : getFunctionNameQualified(fn);
               const fnArgs = getFunctionArguments(fn);
+              const fnRets = getFunctionReturnParameters(fn);
               const evName = isNonViewWithReturns(fn) && (clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, false));
 
               // function header
               const header = [
                 'function',
-                `${prefix}${fnName}(${fnArgs.map(a => `${a.type} ${a.name}`)})`,
+                `${prefix}${fnName}(${fnArgs.map(printArgument)})`,
                 'external',
               ];
+
               if (fn.stateMutability !== 'nonpayable') {
                 if (fn.stateMutability === 'pure' && fnArgs.some(a => a.storageVar)) {
                   header.push('view');
@@ -157,19 +160,25 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
               } else if (isLibrary) {
                 header.push('payable');
               }
+
               if (fn.returnParameters.parameters.length > 0) {
-                header.push(`returns (${fn.returnParameters.parameters.map(p => getVarType(p, 'memory')).join(', ')})`);
+                header.push(`returns (${fnRets.map(printArgument).join(', ')})`);
               }
+
               header.push('{');
+
               // function body
-              const body = evName ? [
-                `(${fn.returnParameters.parameters.map((p, i) => getVarType(p, 'memory') + ` ret${i}`).join(', ')}) = ` +
+              const body = [
+                (fnRets.length === 0 ? '' : `(${fnRets.map(p => p.name).join(', ')}) = `) +
                 `${isLibrary ? c.name : 'super'}.${fn.name}(${fnArgs.map(a => a.storageVar ? `${prefix}${a.storageVar}[${a.name}]` : a.name)});`,
-                `emit ${prefix}${evName}_Returned(${fn.returnParameters.parameters.map((p, i) => `ret${i}`).join(', ')});`,
-                `return (${fn.returnParameters.parameters.map((p, i) => `ret${i}`).join(', ')});`,
-              ] : [
-                `return ${isLibrary ? c.name : 'super'}.${fn.name}(${fnArgs.map(a => a.storageVar ? `${prefix}${a.storageVar}[${a.name}]` : a.name)});`,
               ];
+
+              if (evName) {
+                body.push(
+                  `emit return${prefix}${evName}(${fnRets.map(p => p.name).join(', ')});`,
+                );
+              }
+
               // return function
               return [ header.join(' '), body, `}` ];
             }),
@@ -297,6 +306,8 @@ interface Argument {
   storageType?: string;
 }
 
+const printArgument = (arg: Argument) => `${arg.type} ${arg.name}`;
+
 function getFunctionArguments(fnDef: FunctionDefinition): Argument[] {
   return fnDef.parameters.parameters.map((p, i) => {
     const name = p.name || `arg${i}`;
@@ -323,6 +334,14 @@ function getAllStorageArguments(fns: FunctionDefinition[]): Required<Argument>[]
       fns.flatMap(getStorageArguments).map(a => [a.storageVar, a]),
     ).values(),
   ];
+}
+
+function getFunctionReturnParameters(fnDef: FunctionDefinition, location: StorageLocation | null = 'memory'): Argument[] {
+  return fnDef.returnParameters.parameters.map((p, i) => {
+    const name = p.name || `ret${i}`;
+    const type = getVarType(p, location);
+    return { name, type };
+  });
 }
 
 function getVarType(varDecl: VariableDeclaration, location: StorageLocation | null = varDecl.storageLocation): string {
