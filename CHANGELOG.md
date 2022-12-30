@@ -2,7 +2,9 @@
 
 ## 0.3.0
 
-- Renamed events for return values from `$<function>_Returned` to `return$<function>`.
+- Changed events for return values:
+  - Renamed from `$<function>_Returned` to `return$<function>`.
+  - Renamed parameters from `arg0` and so on to `ret0` or the function's declared return value name if available.
 
 ## 0.2.17
 
