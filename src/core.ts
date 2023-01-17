@@ -39,9 +39,14 @@ export function getExposed(solcOutput: SolcOutput, include: (sourceName: string)
 
 function getExposedFile(absolutePath: string, ast: SourceUnit, deref: ASTDereferencer, prefix?: string): ResolvedFile {
   const sourceName = path.relative(rootPath, absolutePath);
-  const userRootPath = hre.userConfig?.paths?.root ? path.normalize(hre.userConfig.paths.root) : '';
+  const userRootPath = hre.userConfig?.paths?.root
+      ? `${path.normalize(hre.userConfig.paths.root)}/`
+      : '';
 
-  const relativizePath = (p: string) => path.relative(path.dirname(absolutePath).replace(userRootPath ? `/${userRootPath}` : '', ''), p).replace(/\\/g, '/');
+  const relativizePath = (p: string) =>
+    path
+      .relative(path.dirname(absolutePath).replace(userRootPath, ''), p)
+      .replace(/\\/g, '/');
   const content = getExposedContent(ast, relativizePath, deref, prefix);
   const contentHash = createNonCryptographicHashBasedIdentifier(Buffer.from(content.rawContent)).toString('hex');
 
