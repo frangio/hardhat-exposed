@@ -284,7 +284,7 @@ function isTypeExternalizable(typeName: TypeName | null | undefined, deref: ASTD
   if (typeName == undefined) {
     return true;
   } if (typeName.nodeType === 'UserDefinedTypeName') {
-    const typeDef = deref(['StructDefinition', 'EnumDefinition', 'ContractDefinition'], typeName.referencedDeclaration);
+    const typeDef = deref(['StructDefinition', 'EnumDefinition', 'ContractDefinition', 'UserDefinedValueTypeDefinition'], typeName.referencedDeclaration);
     if (typeDef.nodeType !== 'StructDefinition') {
       return true;
     } else {

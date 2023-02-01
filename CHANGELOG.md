@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- Added support for user defined value types.
+
 ## 0.3.0
 
 - Changed events for return values:

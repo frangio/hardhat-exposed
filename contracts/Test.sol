@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.8;
 
 struct S {
     uint x;
@@ -64,6 +64,12 @@ contract Foo {
     constructor() {
         _x4 = 42;
     }
+
+    type Integer is int;
+
+    Integer internal z;
+
+    function _testUDVT(Integer i) internal {}
 }
 
 contract Bar is Foo {
