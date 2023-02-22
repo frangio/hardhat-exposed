@@ -233,7 +233,7 @@ function makeConstructor(contract: ContractDefinition, deref: ASTDereferencer): 
   const parents = contract.linearizedBaseContracts.map(deref('ContractDefinition')).reverse();
   const parentsWithConstructor = parents.filter(c => getConstructor(c)?.parameters.parameters.length);
   const initializedParentIds = new Set(parents.flatMap(p => [
-    ...p.baseContracts.filter(c => c.arguments?.length).map(c => c.id),
+    ...p.baseContracts.filter(c => c.arguments?.length).map(c => c.baseName.referencedDeclaration),
     ...getConstructor(p)?.modifiers.map(m => m.modifierName.referencedDeclaration).filter(notNull) ?? [],
   ]));
   const uninitializedParents = parentsWithConstructor.filter(c => !initializedParentIds.has(c.id));
