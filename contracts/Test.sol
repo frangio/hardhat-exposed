@@ -142,6 +142,8 @@ contract ConstructorStorageLocation {
     constructor(string memory name) {}
 }
 
+contract ImplicitConstructor is ConstructorStorageLocation("") {}
+
 contract Chained0 {
     function _chained() internal virtual {}
 }
