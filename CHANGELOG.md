@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2
+
+- Fixed support for constructor arguments in inheritance list (`contract A is B(...)`).
+
 ## 0.3.1
 
 - Added support for user defined value types.
