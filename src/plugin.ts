@@ -18,9 +18,10 @@ extendConfig((config, { exposed: userConfig }) => {
   };
 });
 
-task(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS, async (_0, _1, superCall: () => Promise<string[]>) => {
+task(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS, async (_, hre, superCall: () => Promise<string[]>) => {
   const path = await import('path');
-  const { exposedPath } = await import('./core');
+  const { getExposedPath } = await import('./core');
+  const exposedPath = getExposedPath(hre.config);
   const paths = await superCall();
   return paths.filter(p => !p.startsWith(exposedPath + path.sep));
 });
@@ -75,7 +76,7 @@ async function getExposedJob(compilationJob: CompilationJob, output: CompilerOut
   const inputFiles = Object.fromEntries(compilationJob.getResolvedFiles().map(rf => [rf.sourceName, rf.absolutePath]));
 
   const include = await getMatcher(hre.config);
-  const exposed = getExposed(output, include, hre.config.exposed.prefix);
+  const exposed = getExposed(output, include, hre.config);
 
   const cj: CompilationJob = {
     getResolvedFiles: () => [...exposed.values()],

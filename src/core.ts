@@ -1,10 +1,10 @@
-import hre from 'hardhat';
 import path from 'path';
 
-import { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName } from 'solidity-ast';
 import { findAll, astDereferencer, ASTDereferencer } from 'solidity-ast/utils';
 import { formatLines, spaceBetween } from './utils/format-lines';
-import { FileContent, ResolvedFile } from 'hardhat/types';
+import type { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName } from 'solidity-ast';
+import type { FileContent, ProjectPathsConfig, ResolvedFile } from 'hardhat/types';
+import type { ExposedConfig } from './config';
 
 export interface SolcOutput {
   sources: {
@@ -15,14 +15,26 @@ export interface SolcOutput {
   };
 }
 
-const rootPath = hre.config.paths.root;
-const sourcesPath = hre.config.paths.sources;
-const rootRelativeSourcesPath = path.relative(rootPath, sourcesPath);
-export const exposedPath = path.join(rootPath, hre.config.exposed.outDir);
 const exposedVersionPragma = '>=0.6.0';
 const defaultPrefix = '$';
 
-export function getExposed(solcOutput: SolcOutput, include: (sourceName: string) => boolean, prefix?: string): Map<string, ResolvedFile> {
+interface Config {
+  paths: ProjectPathsConfig,
+  exposed: ExposedConfig,
+}
+
+export const getExposedPath = (config: Config) => path.join(config.paths.root, config.exposed.outDir);
+
+export function getExposed(
+  solcOutput: SolcOutput,
+  include: (sourceName: string) => boolean,
+  config: Config,
+): Map<string, ResolvedFile> {
+  const rootPath = config.paths.root;
+  const sourcesPath = config.paths.sources;
+  const rootRelativeSourcesPath = path.relative(rootPath, sourcesPath);
+  const exposedPath = getExposedPath(config);
+
   const res = new Map<string, ResolvedFile>();
   const deref = astDereferencer(solcOutput);
 
@@ -31,13 +43,13 @@ export function getExposed(solcOutput: SolcOutput, include: (sourceName: string)
       continue;
     }
     const destPath = path.join(exposedPath, path.relative(rootRelativeSourcesPath, ast.absolutePath));
-    res.set(destPath, getExposedFile(destPath, ast, deref, prefix));
+    res.set(destPath, getExposedFile(rootPath, destPath, ast, deref, config.exposed.prefix));
   }
 
   return res;
 }
 
-function getExposedFile(absolutePath: string, ast: SourceUnit, deref: ASTDereferencer, prefix?: string): ResolvedFile {
+function getExposedFile(rootPath: string, absolutePath: string, ast: SourceUnit, deref: ASTDereferencer, prefix?: string): ResolvedFile {
   const sourceName = path.relative(rootPath, absolutePath);
 
   const relativizePath = (p: string) => path.relative(path.dirname(absolutePath), p).replace(/\\/g, '/');
