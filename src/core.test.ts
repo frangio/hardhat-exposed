@@ -17,7 +17,8 @@ test('snapshot', async t => {
 
   const [bip] = await hre.artifacts.getBuildInfoPaths();
   const bi: BuildInfo = JSON.parse(await fs.readFile(bip!, 'utf8'));
-  const exposed = getExposed(bi.output, sourceName => !sourceName.startsWith(rootRelativeExposedPath), hre.config);
+  const config = { paths: hre.config.paths, exposed: { ...baseConfig, initializers: false } };
+  const exposed = getExposed(bi.output, sourceName => !sourceName.startsWith(rootRelativeExposedPath), config);
   const exposedFiles = [...exposed.values()].sort((a, b) => a.absolutePath.localeCompare(b.absolutePath))
   for (const rf of exposedFiles) { 
     t.snapshot(rf.content.rawContent);

@@ -293,25 +293,32 @@ function makeConstructor(contract: ContractDefinition, deref: ASTDereferencer, i
     parentArguments.set(c.name, args);
   }
 
-  const result: Lines[] = [
-    [
-      `constructor(${[...missingArguments].map(([name, type]) => `${type} ${name}`).join(', ')})`,
-      ...uninitializedParents.filter(p => {
-        const c = constructors.get(p.id);
-        return c?.kind === 'constructor' && c?.parameters.parameters.length;
-      }).map(p => `${p.name}(${mustGet(parentArguments, p.name).join(', ')})`),
-      '{'
-    ].join(' '),
-  ];
+  const parentConstructorCalls = [];
+  const parentInitializerCalls = [];
 
-  if (initializers) {
-    result.push(
-      uninitializedParents.filter(p => constructors.get(p.id)?.kind !== 'constructor').map(p => `__${p.name}_init(${mustGet(parentArguments, p.name).join(', ')});`),
-    );
+  for (const p of uninitializedParents) {
+    const ctor = constructors.get(p.id);
+    if (ctor) {
+      const params = mustGet(parentArguments, p.name).join(', ');
+      if (ctor.kind === 'constructor') {
+        if (ctor.parameters.parameters.length) {
+          parentConstructorCalls.push(`${p.name}(${params})`);
+        }
+      } else {
+        parentInitializerCalls.push(`${ctor.name}(${params})`);
+      }
+    }
   }
 
-  result.push('}');
-  return result;
+  return [
+    [
+      `constructor(${[...missingArguments].map(([name, type]) => `${type} ${name}`).join(', ')})`,
+      ...parentConstructorCalls,
+      '{',
+    ].join(' '),
+    parentInitializerCalls.map(e => `${e};`),
+    '}',
+  ];
 }
 
 function getConstructor(contract: ContractDefinition, initializers: boolean): FunctionDefinition | undefined {
