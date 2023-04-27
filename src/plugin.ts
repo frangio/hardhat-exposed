@@ -14,7 +14,8 @@ extendConfig((config, { exposed: userConfig }) => {
     prefix: userConfig?.prefix,
     exclude: userConfig?.exclude ?? [],
     include: userConfig?.include ?? ['**/*'],
-    outDir: userConfig?.outDir ?? "contracts-exposed"
+    outDir: userConfig?.outDir ?? "contracts-exposed",
+    initializers: userConfig?.initializers,
   };
 });
 

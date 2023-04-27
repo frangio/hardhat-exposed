@@ -3,10 +3,10 @@ export interface ExposedUserConfig {
   exclude?: string[];
   include?: string[];
   outDir?: string;
+  initializers?: boolean;
 }
 
-export interface ExposedConfig {
-  prefix?: string;
+export interface ExposedConfig extends ExposedUserConfig {
   exclude: string[];
   include: string[];
   outDir: string;

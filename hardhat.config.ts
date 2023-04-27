@@ -9,5 +9,6 @@ export default <HardhatUserConfig> {
   solidity: '0.8.8',
   exposed: {
     exclude: ['Excluded.sol'],
+    initializers: true,
   },
 };
