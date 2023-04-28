@@ -314,6 +314,7 @@ function makeConstructor(contract: ContractDefinition, deref: ASTDereferencer, i
     [
       `constructor(${[...missingArguments].map(([name, type]) => `${type} ${name}`).join(', ')})`,
       ...parentConstructorCalls,
+      ...(parentInitializerCalls.length ? ['initializer'] : []),
       '{',
     ].join(' '),
     parentInitializerCalls.map(e => `${e};`),
