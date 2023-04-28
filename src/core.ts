@@ -268,7 +268,7 @@ function makeConstructor(contract: ContractDefinition, deref: ASTDereferencer, i
 
       if (initializers) {
         for (const fnCall of findAll('FunctionCall', ctor)) {
-          if (fnCall.expression.nodeType === 'Identifier' && isInitializerName(fnCall.expression.name, 'unchained')) {
+          if (fnCall.expression.nodeType === 'Identifier' && isInitializerName(fnCall.expression.name, 'any')) {
             const fnDef = deref('FunctionDefinition', fnCall.expression.referencedDeclaration!);
             if (fnDef.scope !== p.id) {
               initializedParents.add(fnDef.scope);
@@ -341,12 +341,11 @@ function getConstructor(contract: ContractDefinition, initializers: boolean): Fu
   return init || ctor;
 }
 
-function isInitializerName(fnName: string, kind?: 'unchained'): boolean {
-  if (kind === 'unchained') {
-    return /^__[a-zA-Z0-9$_]+_init_unchained$/.test(fnName);
-  } else {
-    return /^__[a-zA-Z0-9$_]+_init$/.test(fnName);
-  }
+function isInitializerName(fnName: string, kind?: 'unchained' | 'any'): boolean {
+  const m = fnName.match(/^__[a-zA-Z0-9$_]+_init(_unchained)?$/);
+  const isUnchained = m?.[1] === '_unchained';
+  const wantsUnchained = (kind === 'unchained');
+  return m !== null && (kind === 'any' || isUnchained === wantsUnchained);
 }
 
 function notNull<T>(value: T): value is NonNullable<T> {

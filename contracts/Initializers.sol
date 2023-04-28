@@ -44,3 +44,9 @@ contract YU is Initializable, XU {
     function __Y_init() internal {}
     function __Y_init_unchained() internal {}
 }
+
+contract YUW is YU {
+    constructor(uint x) {
+        __X_init(x);
+    }
+}
