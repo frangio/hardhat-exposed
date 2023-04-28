@@ -270,7 +270,9 @@ function makeConstructor(contract: ContractDefinition, deref: ASTDereferencer, i
         for (const fnCall of findAll('FunctionCall', ctor)) {
           if (fnCall.expression.nodeType === 'Identifier' && isInitializerName(fnCall.expression.name, 'unchained')) {
             const fnDef = deref('FunctionDefinition', fnCall.expression.referencedDeclaration!);
-            initializedParents.add(fnDef.scope);
+            if (fnDef.scope !== p.id) {
+              initializedParents.add(fnDef.scope);
+            }
           }
         }
       }
