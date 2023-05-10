@@ -4,6 +4,7 @@ import {
   TASK_COMPILE_SOLIDITY_COMPILE_JOB,
   TASK_COMPILE_SOLIDITY_GET_COMPILER_INPUT,
   TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS,
+  TASK_CLEAN,
 } from 'hardhat/builtin-tasks/task-names';
 import type { CompilationJob, CompilerInput, CompilerOutput, HardhatConfig, SolcBuild } from 'hardhat/types';
 
@@ -17,6 +18,16 @@ extendConfig((config, { exposed: userConfig }) => {
     outDir: userConfig?.outDir ?? "contracts-exposed",
     initializers: userConfig?.initializers,
   };
+});
+
+task(TASK_CLEAN, async (opts: { global: boolean }, hre, superCall) => {
+  if (!opts.global) {
+    const fs = await import('fs/promises');
+    const { getExposedPath } = await import('./core');
+    const exposedPath = getExposedPath(hre.config);
+    await fs.rm(exposedPath, { recursive: true, force: true });
+  }
+  return superCall();
 });
 
 task(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS, async (_, hre, superCall: () => Promise<string[]>) => {

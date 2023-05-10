@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.4
+
+- Extend Hardhat's `clean` task to delete the directory of exposed contracts.
+
 ## 0.3.3
 
 - Add optional support for OpenZeppelin Contracts-style initializers in upgradeable contracts.
