@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.5
+
+- Emit a payable constructor if the contract requires it.
+
 ## 0.3.4
 
 - Extend Hardhat's `clean` task to delete the directory of exposed contracts.
