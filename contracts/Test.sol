@@ -239,11 +239,3 @@ contract HasReceiveFunction {
 import { Imported } from './Imported.sol';
 
 contract ImportedChild is Imported {}
-
-contract HasPayableCtor {
-    constructor() payable { msg.value; }
-}
-
-contract HasPayableCtorParent is HasPayableCtor {
-    constructor() {}
-}

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.6
+
+- Emit a payable constructor always.
+
 ## 0.3.5
 
 - Emit a payable constructor if the contract requires it.

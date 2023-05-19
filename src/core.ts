@@ -312,14 +312,12 @@ function makeConstructor(contract: ContractDefinition, deref: ASTDereferencer, i
     }
   }
 
-  const shouldBePayable = [...constructors.values()].some(ctor => ctor.stateMutability === 'payable');
-
   return [
     [
       `constructor(${[...missingArguments].map(([name, type]) => `${type} ${name}`).join(', ')})`,
       ...parentConstructorCalls,
       ...(parentInitializerCalls.length ? ['initializer'] : []),
-      ...(shouldBePayable ? ['payable'] : []),
+      'payable',
       '{',
     ].join(' '),
     parentInitializerCalls.map(e => `${e};`),
