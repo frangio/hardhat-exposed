@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.7
+
+- Use a constant variable for the bytecode marker.
+
 ## 0.3.6
 
 - Emit a payable constructor always.
