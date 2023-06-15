@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.8
+
+- Support custom `paths.root` in Hardhat config.
+
 ## 0.3.7
 
 - Use a constant variable for the bytecode marker.

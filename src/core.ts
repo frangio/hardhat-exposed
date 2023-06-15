@@ -51,8 +51,9 @@ export function getExposed(
 
 function getExposedFile(rootPath: string, absolutePath: string, ast: SourceUnit, deref: ASTDereferencer, initializers?: boolean, prefix?: string): ResolvedFile {
   const sourceName = path.relative(rootPath, absolutePath);
+  const dirname = path.dirname(absolutePath);
 
-  const relativizePath = (p: string) => path.relative(path.dirname(absolutePath), p).replace(/\\/g, '/');
+  const relativizePath = (p: string) => path.relative(dirname, path.join(rootPath, p)).replace(/\\/g, '/');
   const content = getExposedContent(ast, relativizePath, deref, initializers, prefix);
   const contentHash = createNonCryptographicHashBasedIdentifier(Buffer.from(content.rawContent)).toString('hex');
 
