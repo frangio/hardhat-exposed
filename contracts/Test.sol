@@ -239,3 +239,19 @@ contract HasReceiveFunction {
 import { Imported } from './Imported.sol';
 
 contract ImportedChild is Imported {}
+
+contract HasEnum {
+    enum InheritedEnum {
+        X
+    }
+}
+
+contract ParentHasEnum is HasEnum {
+    function _getValue(InheritedEnum foo) internal pure returns (uint8) {
+        return uint8(foo);
+    }
+
+    function _getY(Types.Enum e) internal pure returns (uint8) {
+        return uint8(e);
+    }
+}

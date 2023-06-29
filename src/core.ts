@@ -5,6 +5,7 @@ import { formatLines, Lines, spaceBetween } from './utils/format-lines';
 import type { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName, InheritanceSpecifier, ModifierInvocation, FunctionCall } from 'solidity-ast';
 import type { FileContent, ProjectPathsConfig, ResolvedFile } from 'hardhat/types';
 import type { ExposedConfig } from './config';
+import assert from 'assert';
 
 export interface SolcOutput {
   sources: {
@@ -105,7 +106,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
 
         const clashingFunctions: Record<string, number> = {};
         for (const fn of externalizableFunctions) {
-          const id = getFunctionId(fn);
+          const id = getFunctionId(fn, c, deref);
           clashingFunctions[id] ??= 0;
           clashingFunctions[id] += 1;
         }
@@ -121,13 +122,13 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
           [`bytes32 public constant __hh_exposed_bytecode_marker = "hardhat-exposed";\n`],
           spaceBetween(
             // slots for storage function parameters
-            ...getAllStorageArguments(externalizableFunctions).map(a => [
+            ...getAllStorageArguments(externalizableFunctions, c, deref).map(a => [
               `mapping(uint256 => ${a.storageType}) internal ${prefix}${a.storageVar};`,
             ]),
             // events for internal returns
             ...returnedEventFunctions.map(fn => {
-              const evName = clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, false);
-              const params = getFunctionReturnParameters(fn, null);
+              const evName = clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, c, deref, false);
+              const params = getFunctionReturnParameters(fn, c, deref, null);
               return [
                 `event return${prefix}${evName}(${params.map(printArgument).join(', ')});`
               ]
@@ -138,24 +139,24 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
             ...externalizableVariables.map(v => [
               [
                 'function',
-                `${prefix}${v.name}(${getVarGetterArgs(v).map(printArgument).join(', ')})`,
+                `${prefix}${v.name}(${getVarGetterArgs(v, c, deref).map(printArgument).join(', ')})`,
                 'external',
                 v.mutability === 'mutable' || (v.mutability === 'immutable' && !v.value) ? 'view' : 'pure',
                 'returns',
-                `(${getVarGetterReturnType(v)})`,
+                `(${getVarGetterReturnType(v, c, deref)})`,
                 '{'
               ].join(' '),
               [
-                `return ${isLibrary ? c.name + '.' : ''}${v.name}${getVarGetterArgs(v).map(a => `[${a.name}]`).join('')};`,
+                `return ${isLibrary ? c.name + '.' : ''}${v.name}${getVarGetterArgs(v, c, deref).map(a => `[${a.name}]`).join('')};`,
               ],
               '}',
             ]),
             // external functions
             ...externalizableFunctions.map(fn => {
-              const fnName = clashingFunctions[getFunctionId(fn)] === 1 ? fn.name : getFunctionNameQualified(fn);
-              const fnArgs = getFunctionArguments(fn);
-              const fnRets = getFunctionReturnParameters(fn);
-              const evName = isNonViewWithReturns(fn) && (clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, false));
+              const fnName = clashingFunctions[getFunctionId(fn, c, deref)] === 1 ? fn.name : getFunctionNameQualified(fn, c, deref);
+              const fnArgs = getFunctionArguments(fn, c, deref);
+              const fnRets = getFunctionReturnParameters(fn, c, deref);
+              const evName = isNonViewWithReturns(fn) && (clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, c, deref, false));
 
               // function header
               const header = [
@@ -228,14 +229,14 @@ function areFunctionsFullyImplemented(contract: ContractDefinition, deref: ASTDe
   return abstractFunctionIds.size === 0;
 }
 
-function getFunctionId(fn: FunctionDefinition): string {
-  const storageArgs = new Set<Argument>(getStorageArguments(fn));
-  const nonStorageArgs = getFunctionArguments(fn).filter(a => !storageArgs.has(a));
+function getFunctionId(fn: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer): string {
+  const storageArgs = new Set<Argument>(getStorageArguments(fn, context, deref));
+  const nonStorageArgs = getFunctionArguments(fn, context, deref).filter(a => !storageArgs.has(a));
   return fn.name + nonStorageArgs.map(a => a.type).join('');
 }
 
-function getFunctionNameQualified(fn: FunctionDefinition, onlyStorage: boolean = true): string {
-  return fn.name + (onlyStorage ? getStorageArguments(fn) : getFunctionArguments(fn))
+function getFunctionNameQualified(fn: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer, onlyStorage: boolean = true): string {
+  return fn.name + (onlyStorage ? getStorageArguments(fn, context, deref) : getFunctionArguments(fn, context, deref))
     .map(arg => arg.storageType ?? arg.type)
     .map(type => type.replace(/ .*/,'').replace(/[^0-9a-zA-Z$_]+/g, '_')) // sanitize
     .join('_')
@@ -289,7 +290,7 @@ function makeConstructor(contract: ContractDefinition, deref: ASTDereferencer, i
     const args = [];
     for (const a of constructors.get(c.id)?.parameters.parameters ?? []) {
       const name = missingArguments.has(a.name) ? `${c.name}_${a.name}` : a.name;
-      const type = getVarType(a, 'memory');
+      const type = getVarType(a, c, deref, 'memory');
       missingArguments.set(name, type);
       args.push(name);
     }
@@ -390,55 +391,68 @@ interface Argument {
 
 const printArgument = (arg: Argument) => `${arg.type} ${arg.name}`;
 
-function getFunctionArguments(fnDef: FunctionDefinition): Argument[] {
+function getFunctionArguments(fnDef: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer): Argument[] {
   return fnDef.parameters.parameters.map((p, i) => {
     const name = p.name || `arg${i}`;
     if (p.storageLocation === 'storage') {
-      const storageType = getVarType(p, null);
+      const storageType = getVarType(p, context, deref, null);
       const storageVar = 'v_' + storageType.replace(/[^0-9a-zA-Z$_]+/g, '_');
       // The argument is an index to an array in storage.
       return { name, type: 'uint256', storageVar, storageType };
     } else {
-      const type = getVarType(p, 'calldata');
+      const type = getVarType(p, context, deref, 'calldata');
       return { name, type };
     }
   });
 }
 
-function getStorageArguments(fn: FunctionDefinition): Required<Argument>[] {
-  return getFunctionArguments(fn)
+function getStorageArguments(fn: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer): Required<Argument>[] {
+  return getFunctionArguments(fn, context, deref)
     .filter((a): a is Required<Argument> => !!(a.storageVar && a.storageType));
 }
 
-function getAllStorageArguments(fns: FunctionDefinition[]): Required<Argument>[] {
+function getAllStorageArguments(fns: FunctionDefinition[], context: ContractDefinition, deref: ASTDereferencer): Required<Argument>[] {
   return [
     ...new Map(
-      fns.flatMap(getStorageArguments).map(a => [a.storageVar, a]),
+      fns.flatMap(fn => getStorageArguments(fn, context, deref)).map(a => [a.storageVar, a]),
     ).values(),
   ];
 }
 
-function getFunctionReturnParameters(fnDef: FunctionDefinition, location: StorageLocation | null = 'memory'): Argument[] {
+function getFunctionReturnParameters(fnDef: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer, location: StorageLocation | null = 'memory'): Argument[] {
   return fnDef.returnParameters.parameters.map((p, i) => {
     const name = p.name || `ret${i}`;
-    const type = getVarType(p, location);
+    const type = getVarType(p, context, deref, location);
     return { name, type };
   });
 }
 
-function getVarType(varDecl: VariableDeclaration, location: StorageLocation | null = varDecl.storageLocation): string {
+function getVarType(varDecl: VariableDeclaration, context: ContractDefinition, deref: ASTDereferencer, location: StorageLocation | null = varDecl.storageLocation): string {
   if (!varDecl.typeName) {
     throw new Error('Missing type information');
   }
-  return getType(varDecl.typeName, location);
+  return getType(varDecl.typeName, context, deref, location);
 }
 
-function getType(typeName: TypeName, location: StorageLocation | null): string {
+function getType(typeName: TypeName, context: ContractDefinition, deref: ASTDereferencer, location: StorageLocation | null): string {
   const { typeString, typeIdentifier } = typeName.typeDescriptions;
   if (typeof typeString !== 'string' || typeof typeIdentifier !== 'string') {
     throw new Error('Missing type information');
   }
-  const type = typeString.replace(/^(struct|enum|contract) /, '') + (typeIdentifier.endsWith('_ptr') && location ? ` ${location}` : '');
+
+  let type = typeString.replace(/^(struct|enum|contract) /, '') + (typeIdentifier.endsWith('_ptr') && location ? ` ${location}` : '');
+
+  const typeScopeMatch = type.match(/^([a-zA-Z0-9_$]+)\./);
+  if (typeScopeMatch) {
+    const [, typeScope] = typeScopeMatch;
+
+    const isScopeImplicit = context.linearizedBaseContracts.some(c => deref('ContractDefinition', c).name === typeScope);
+
+    if (isScopeImplicit) {
+      type = type.replace(`${typeScope}.`, '');
+    }
+  }
+
   return type;
 }
 
@@ -458,18 +472,18 @@ function getVariables(contract: ContractDefinition, deref: ASTDereferencer, subs
   return res;
 }
 
-function getVarGetterArgs(v: VariableDeclaration): Argument[] {
+function getVarGetterArgs(v: VariableDeclaration, context: ContractDefinition, deref: ASTDereferencer): Argument[] {
   if (!v.typeName) {
     throw new Error('missing typenName');
   }
   const types = [];
   for (let t = v.typeName; t.nodeType === 'Mapping'; t = t.valueType) {
-    types.push({ name: `arg${types.length}`, type: getType(t.keyType, 'memory') })
+    types.push({ name: `arg${types.length}`, type: getType(t.keyType, context, deref, 'memory') })
   }
   return types;
 }
 
-function getVarGetterReturnType(v: VariableDeclaration): string {
+function getVarGetterReturnType(v: VariableDeclaration, context: ContractDefinition, deref: ASTDereferencer): string {
   if (!v.typeName) {
     throw new Error('missing typenName');
   }
@@ -477,7 +491,7 @@ function getVarGetterReturnType(v: VariableDeclaration): string {
   while (t.nodeType === 'Mapping') {
     t = t.valueType;
   }
-  return getType(t, 'memory');
+  return getType(t, context, deref, 'memory');
 }
 
 function getFunctions(contract: ContractDefinition, deref: ASTDereferencer, subset?: Visibility[]): FunctionDefinition[] {

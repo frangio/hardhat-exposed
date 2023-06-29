@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.9
+
+- Do not use fully qualified names for types in generated code unless necessary.
+
 ## 0.3.8
 
 - Support custom `paths.root` in Hardhat config.
