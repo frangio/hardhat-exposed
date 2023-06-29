@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.10
+
+- Fix "identifier not found" errors seen when the original source code uses explicit imports.
+
 ## 0.3.9
 
 - Do not use fully qualified names for types in generated code unless necessary.

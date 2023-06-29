@@ -74,11 +74,20 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
   }
 
   const contractPrefix = prefix.replace(/^./, c => c.toUpperCase());
-  const imports = [ast.absolutePath].concat(
+
+  const neededAbsoluteImports = [ast.absolutePath].concat(
     [...findAll('ImportDirective', ast)]
       .filter(i => i.symbolAliases.length > 0)
       .map(i => i.absolutePath),
-  ).map(relativizePath);
+    [...findAll('ContractDefinition', ast)]
+      .flatMap(c => c.linearizedBaseContracts.map(p => {
+        const sourceId = deref('ContractDefinition', p).scope;
+        return deref('SourceUnit', sourceId).absolutePath;
+      })),
+  );
+
+  // remove duplicates and relativize
+  const imports = Array.from(new Set(neededAbsoluteImports), relativizePath);
 
   const rawContent = formatLines(
     ...spaceBetween(
