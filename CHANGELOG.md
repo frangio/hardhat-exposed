@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.11
+
+- Fix error with types defined inside libraries.
+
 ## 0.3.10
 
 - Fix "identifier not found" errors seen when the original source code uses explicit imports.

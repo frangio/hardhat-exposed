@@ -255,3 +255,11 @@ contract ParentHasEnum is HasEnum {
         return uint8(e);
     }
 }
+
+library LibraryHasStruct {
+    struct Inner {
+        uint x;
+    }
+
+    function foo() internal returns (Inner memory) {}
+}

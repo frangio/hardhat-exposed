@@ -452,7 +452,7 @@ function getType(typeName: TypeName, context: ContractDefinition, deref: ASTDere
   let type = typeString.replace(/^(struct|enum|contract) /, '') + (typeIdentifier.endsWith('_ptr') && location ? ` ${location}` : '');
 
   const typeScopeMatch = type.match(/^([a-zA-Z0-9_$]+)\./);
-  if (typeScopeMatch) {
+  if (context.contractKind !== 'library' && typeScopeMatch) {
     const [, typeScope] = typeScopeMatch;
 
     const isScopeImplicit = context.linearizedBaseContracts.some(c => deref('ContractDefinition', c).name === typeScope);
