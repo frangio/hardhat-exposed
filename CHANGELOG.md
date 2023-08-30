@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.12
+
+- Clean exposed files on `hardhat compile --force`.
+
 ## 0.3.11
 
 - Fix error with types defined inside libraries.

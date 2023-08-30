@@ -1,12 +1,13 @@
 import { extendConfig, task } from 'hardhat/config';
 import {
+  TASK_COMPILE_SOLIDITY,
   TASK_COMPILE_SOLIDITY_COMPILE,
   TASK_COMPILE_SOLIDITY_COMPILE_JOB,
   TASK_COMPILE_SOLIDITY_GET_COMPILER_INPUT,
   TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS,
   TASK_CLEAN,
 } from 'hardhat/builtin-tasks/task-names';
-import type { CompilationJob, CompilerInput, CompilerOutput, HardhatConfig, SolcBuild } from 'hardhat/types';
+import type { CompilationJob, CompilerInput, CompilerOutput, HardhatConfig, HardhatRuntimeEnvironment, SolcBuild } from 'hardhat/types';
 
 import type {} from './type-extensions';
 
@@ -22,10 +23,14 @@ extendConfig((config, { exposed: userConfig }) => {
 
 task(TASK_CLEAN, async (opts: { global: boolean }, hre, superCall) => {
   if (!opts.global) {
-    const fs = await import('fs/promises');
-    const { getExposedPath } = await import('./core');
-    const exposedPath = getExposedPath(hre.config);
-    await fs.rm(exposedPath, { recursive: true, force: true });
+    await cleanExposed(hre);
+  }
+  return superCall();
+});
+
+task(TASK_COMPILE_SOLIDITY, async ({ force }: { force: boolean }, hre, superCall) => {
+  if (force) {
+    await cleanExposed(hre);
   }
   return superCall();
 });
@@ -73,7 +78,7 @@ task<CompileJobArgs>(TASK_COMPILE_SOLIDITY_COMPILE_JOB, async (args, hre, superC
   });
 
   if (!output.errors?.some(e => e.severity === 'error')) {
-    const exposedJob = await getExposedJob(compilationJob, output);
+    const exposedJob = await getExposedJob(hre, compilationJob, output);
     await writeExposed(exposedJob);
     compilationJob = compilationJob.merge(exposedJob);
   }
@@ -81,8 +86,7 @@ task<CompileJobArgs>(TASK_COMPILE_SOLIDITY_COMPILE_JOB, async (args, hre, superC
   return superCall({ ...args, compilationJob });
 });
 
-async function getExposedJob(compilationJob: CompilationJob, output: CompilerOutput): Promise<CompilationJob> {
-  const hre = await import('hardhat');
+async function getExposedJob(hre: HardhatRuntimeEnvironment, compilationJob: CompilationJob, output: CompilerOutput): Promise<CompilationJob> {
   const { getExposed } = await import('./core');
 
   const inputFiles = Object.fromEntries(compilationJob.getResolvedFiles().map(rf => [rf.sourceName, rf.absolutePath]));
@@ -109,6 +113,14 @@ async function writeExposed(exposedJob: CompilationJob) {
     await fs.mkdir(path.dirname(file.absolutePath), { recursive: true });
     await fs.writeFile(file.absolutePath, file.content.rawContent);
   }
+}
+
+async function cleanExposed(hre: HardhatRuntimeEnvironment) {
+  const fs = await import('fs/promises');
+  const { getExposedPath } = await import('./core');
+
+  const exposedPath = getExposedPath(hre.config);
+  await fs.rm(exposedPath, { recursive: true, force: true });
 }
 
 async function getMatcher(config: HardhatConfig) {
