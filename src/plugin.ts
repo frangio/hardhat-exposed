@@ -13,11 +13,10 @@ import type {} from './type-extensions';
 
 extendConfig((config, { exposed: userConfig }) => {
   config.exposed = {
-    prefix: userConfig?.prefix,
+    ...userConfig,
     exclude: userConfig?.exclude ?? [],
     include: userConfig?.include ?? ['**/*'],
     outDir: userConfig?.outDir ?? "contracts-exposed",
-    initializers: userConfig?.initializers,
   };
 });
 
