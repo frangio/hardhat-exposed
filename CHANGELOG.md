@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.13
+
+- Interfaces are not longer exposed.
+- A new `imports: boolean` config option allows generating exposed versions of imported contracts. Off by default.
+
 ## 0.3.12
 
 - Clean exposed files on `hardhat compile --force`.

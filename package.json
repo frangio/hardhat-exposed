@@ -20,12 +20,13 @@
   },
   "dependencies": {
     "micromatch": "^4.0.4",
-    "solidity-ast": "^0.4.25"
+    "solidity-ast": "^0.4.52"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-truffle5": "^2.0.0",
     "@nomiclabs/hardhat-web3": "^2.0.0",
+    "@openzeppelin/contracts": "^4.9.3",
     "@types/micromatch": "^4.0.2",
     "@types/mocha": "^8.0.0",
     "@types/node": "^14.18.46",

@@ -4,7 +4,7 @@ import { findAll, astDereferencer, ASTDereferencer } from 'solidity-ast/utils';
 import { formatLines, Lines, spaceBetween } from './utils/format-lines';
 import type { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName, InheritanceSpecifier, ModifierInvocation, FunctionCall } from 'solidity-ast';
 import type { FileContent, ProjectPathsConfig, ResolvedFile } from 'hardhat/types';
-import type { ExposedConfig } from './config';
+import type { ExposedConfig, ExposedUserConfig } from './config';
 import assert from 'assert';
 
 export interface SolcOutput {
@@ -24,6 +24,8 @@ interface Config {
   exposed: ExposedConfig,
 }
 
+type ContractFilter = (node: ContractDefinition) => boolean;
+
 export const getExposedPath = (config: Config) => path.join(config.paths.root, config.exposed.outDir);
 
 export function getExposed(
@@ -31,35 +33,79 @@ export function getExposed(
   include: (sourceName: string) => boolean,
   config: Config,
 ): Map<string, ResolvedFile> {
-  const rootPath = config.paths.root;
-  const sourcesPath = config.paths.sources;
-  const rootRelativeSourcesPath = path.relative(rootPath, sourcesPath);
-  const exposedPath = getExposedPath(config);
+  const rootRelativeSourcesPath = path.relative(config.paths.root, config.paths.sources);
+  const exposedRootPath = getExposedPath(config);
 
   const res = new Map<string, ResolvedFile>();
   const deref = astDereferencer(solcOutput);
+
+  const imports: Record<string, Set<ContractDefinition>> = {};
 
   for (const { ast } of Object.values(solcOutput.sources)) {
     if (!include(ast.absolutePath)) {
       continue;
     }
-    const destPath = path.join(exposedPath, path.relative(rootRelativeSourcesPath, ast.absolutePath));
-    res.set(destPath, getExposedFile(rootPath, destPath, ast, deref, config.exposed.initializers, config.exposed.prefix));
+
+    const exposedFile = getExposedFile(config.paths, ast, deref, config.exposed);
+    if (exposedFile !== undefined) {
+      res.set(exposedFile.absolutePath, exposedFile);
+    }
+
+    if (config.exposed.imports) {
+      for (const imp of findAll('ImportDirective', ast)) {
+        if (imp.absolutePath.startsWith(path.normalize(rootRelativeSourcesPath + '/'))) {
+          continue;
+        }
+        const impUnit = deref('SourceUnit', imp.sourceUnit);
+        for (const { foreign } of imp.symbolAliases) {
+          const foreignId = impUnit.exportedSymbols[foreign.name]?.[0];
+          assert(foreignId !== undefined);
+          const { node, sourceUnit } = deref.withSourceUnit('*', foreignId);
+          if (node.nodeType === 'ContractDefinition' && node.contractKind !== 'interface') {
+            imports[sourceUnit.absolutePath] ??= new Set();
+            imports[sourceUnit.absolutePath]!.add(node);
+          }
+        }
+      }
+    }
+  }
+
+  for (const [absoluteImportedPath, contracts] of Object.entries(imports)) {
+    const filter: ContractFilter = node => contracts.has(node);
+    const ast = solcOutput.sources[absoluteImportedPath]?.ast;
+    assert(ast !== undefined);
+    const exposedFile = getExposedFile(config.paths, ast, deref, config.exposed, filter);
+    if (exposedFile !== undefined) {
+      res.set(exposedFile.absolutePath, exposedFile);
+    }
   }
 
   return res;
 }
 
-function getExposedFile(rootPath: string, absolutePath: string, ast: SourceUnit, deref: ASTDereferencer, initializers?: boolean, prefix?: string): ResolvedFile {
-  const sourceName = path.relative(rootPath, absolutePath);
-  const dirname = path.dirname(absolutePath);
+function getExposedFile(paths: ProjectPathsConfig, ast: SourceUnit, deref: ASTDereferencer, config: ExposedConfig, filter?: ContractFilter): ResolvedFile | undefined {
+  const initializers = config?.initializers;
+  const prefix = config?.prefix;
+  const exposedRootPath = getExposedPath({ paths, exposed: config });
 
-  const relativizePath = (p: string) => path.relative(dirname, path.join(rootPath, p)).replace(/\\/g, '/');
-  const content = getExposedContent(ast, relativizePath, deref, initializers, prefix);
+  const sourcesPathPrefix = path.normalize(path.relative(paths.root, paths.sources) + '/');
+  const inSources = ast.absolutePath.startsWith(sourcesPathPrefix);
+  const exposedPath = path.join(exposedRootPath, ...inSources ? [path.relative(sourcesPathPrefix, ast.absolutePath)] : ['$_', ast.absolutePath]);
+
+  const sourceName = path.relative(paths.root, exposedPath);
+  const dirname = path.dirname(exposedPath);
+
+  const relativizePath = (p: string) => (p.startsWith(sourcesPathPrefix) ? path.relative(dirname, p) : p).replace(/\\/g, '/');
+  const content = getExposedContent(ast, relativizePath, deref, initializers, prefix, filter);
+
+  if (content === undefined) {
+    return undefined;
+  }
+
   const contentHash = createNonCryptographicHashBasedIdentifier(Buffer.from(content.rawContent)).toString('hex');
 
   return {
-    absolutePath,
+    absolutePath: exposedPath,
     sourceName,
     content,
     contentHash,
@@ -68,7 +114,7 @@ function getExposedFile(rootPath: string, absolutePath: string, ast: SourceUnit,
   };
 }
 
-function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => string, deref: ASTDereferencer, initializers = false, prefix = defaultPrefix): FileContent {
+function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => string, deref: ASTDereferencer, initializers = false, prefix = defaultPrefix, filter?: ContractFilter): FileContent | undefined {
   if (prefix === '' || /^\d|[^0-9a-z_$]/i.test(prefix)) {
     throw new Error(`Prefix '${prefix}' is not valid`);
   }
@@ -89,13 +135,19 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
   // remove duplicates and relativize
   const imports = Array.from(new Set(neededAbsoluteImports), relativizePath);
 
+  const contracts = [...findAll('ContractDefinition', ast)].filter(c => filter?.(c) !== false && c.contractKind !== 'interface');
+
+  if (contracts.length === 0) {
+    return undefined;
+  }
+
   const rawContent = formatLines(
     ...spaceBetween(
       ['// SPDX-License-Identifier: UNLICENSED'],
       [`pragma solidity ${exposedVersionPragma};`],
       imports.map(i => `import "${i}";`),
 
-      ...Array.from(findAll('ContractDefinition', ast), c => {
+      ...contracts.map(c => {
         const isLibrary = c.contractKind === 'library';
         const contractHeader = [`contract ${contractPrefix}${c.name}`];
         if (!areFunctionsFullyImplemented(c, deref)) {

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { Imported2 } from './Imported2.sol';
+import { Clones } from '@openzeppelin/contracts/proxy/Clones.sol';
 
 contract NotImported {}
 
