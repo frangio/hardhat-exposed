@@ -15,5 +15,6 @@ jobs:
         id: changelog
       - name: Release
         uses: softprops/action-gh-release@v1
+        if: '!contains(github.ref_name, "-")'
         with:
           body_path: ${{ steps.changelog.outputs.file }}
