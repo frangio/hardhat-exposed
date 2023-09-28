@@ -47,7 +47,8 @@ test('snapshot imports', async t => {
   const exposed = getExposed(bi.output, sourceName => sourceName === 'contracts/Imported.sol', config);
   const exposedFiles = [...exposed.values()].sort((a, b) => a.absolutePath.localeCompare(b.absolutePath))
   for (const rf of exposedFiles) { 
-    const { absolutePath, content: { rawContent } } = rf;
+    const absolutePath = path.relative(process.cwd(), rf.absolutePath);
+    const { rawContent } = rf.content;
     t.snapshot({ absolutePath, rawContent });
   }
 });
