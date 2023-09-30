@@ -1,13 +1,10 @@
 # Changelog
 
-## 0.3.14
-
-- Fix missing types when project uses aliased imports.
-
 ## 0.3.13
 
 - Interfaces are not longer exposed.
 - A new `imports: boolean` config option allows generating exposed versions of imported contracts. Off by default.
+- Fix missing types when project uses aliased imports.
 
 ## 0.3.12
 
