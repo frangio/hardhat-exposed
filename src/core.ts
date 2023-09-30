@@ -121,19 +121,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
 
   const contractPrefix = prefix.replace(/^./, c => c.toUpperCase());
 
-  const neededAbsoluteImports = [ast.absolutePath].concat(
-    [...findAll('ImportDirective', ast)]
-      .filter(i => i.symbolAliases.length > 0)
-      .map(i => i.absolutePath),
-    [...findAll('ContractDefinition', ast)]
-      .flatMap(c => c.linearizedBaseContracts.map(p => {
-        const sourceId = deref('ContractDefinition', p).scope;
-        return deref('SourceUnit', sourceId).absolutePath;
-      })),
-  );
-
-  // remove duplicates and relativize
-  const imports = Array.from(new Set(neededAbsoluteImports), relativizePath);
+  const imports = Array.from(getNeededImports(ast, deref), u => relativizePath(u.absolutePath));
 
   const contracts = [...findAll('ContractDefinition', ast)].filter(c => filter?.(c) !== false && c.contractKind !== 'interface');
 
@@ -573,6 +561,26 @@ function getFunctions(contract: ContractDefinition, deref: ASTDereferencer, subs
   }
 
   return res;
+}
+
+function* getNeededImports(ast: SourceUnit, deref: ASTDereferencer): Iterable<SourceUnit> {
+  const needed = new Set<SourceUnit>([ast].concat(
+    [...findAll('ContractDefinition', ast)]
+      .flatMap(c => c.linearizedBaseContracts.map(p => {
+        const { sourceUnit } = deref.withSourceUnit('ContractDefinition', p)
+        return sourceUnit;
+      })),
+  ));
+
+  for (const n of needed) {
+    yield n;
+
+    for (const imp of findAll('ImportDirective', n)) {
+      if (imp.symbolAliases.length > 0) {
+        needed.add(deref('SourceUnit', imp.sourceUnit));
+      }
+    }
+  }
 }
 
 function mustGet<K, V>(map: Map<K, V>, key: K): V {

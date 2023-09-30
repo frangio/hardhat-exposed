@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.14
+
+- Fix missing types when project uses aliased imports.
+
 ## 0.3.13
 
 - Interfaces are not longer exposed.
