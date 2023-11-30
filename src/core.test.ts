@@ -3,7 +3,7 @@ import hre from 'hardhat';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { BuildInfo } from 'hardhat/types';
-import { getExposed, getExposedPath } from './core';
+import { getExposed } from './core';
 
 const baseConfig = {
   exclude: [],
@@ -38,9 +38,6 @@ test('snapshot initializers', async t => {
 });
 
 test('snapshot imports', async t => {
-  const rootRelativeSourcesPath = path.relative(hre.config.paths.root, hre.config.paths.sources);
-  const sourcesPathPrefix = path.normalize(rootRelativeSourcesPath + '/');
-
   const [bip] = await hre.artifacts.getBuildInfoPaths();
   const bi: BuildInfo = JSON.parse(await fs.readFile(bip!, 'utf8'));
   const config = { paths: hre.config.paths, exposed: { ...baseConfig, initializers: false, imports: true } };

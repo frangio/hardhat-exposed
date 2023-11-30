@@ -34,7 +34,6 @@ export function getExposed(
   config: Config,
 ): Map<string, ResolvedFile> {
   const rootRelativeSourcesPath = path.relative(config.paths.root, config.paths.sources);
-  const exposedRootPath = getExposedPath(config);
 
   const res = new Map<string, ResolvedFile>();
   const deref = astDereferencer(solcOutput);
@@ -90,7 +89,7 @@ function getExposedFile(paths: ProjectPathsConfig, ast: SourceUnit, deref: ASTDe
 
   const sourcesPathPrefix = path.normalize(path.relative(paths.root, paths.sources) + '/');
   const inSources = ast.absolutePath.startsWith(sourcesPathPrefix);
-  const exposedPath = path.join(exposedRootPath, ...inSources ? [path.relative(sourcesPathPrefix, ast.absolutePath)] : ['$_', ast.absolutePath]);
+  const exposedPath = path.join(exposedRootPath, ...inSources ? [`${config?.prefix ?? defaultPrefix}${path.relative(sourcesPathPrefix, ast.absolutePath)}`] : ['$_', ast.absolutePath]);
 
   const sourceName = path.relative(paths.root, exposedPath);
   const dirname = path.dirname(exposedPath);
