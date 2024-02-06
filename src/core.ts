@@ -34,7 +34,6 @@ export function getExposed(
   config: Config,
 ): Map<string, ResolvedFile> {
   const rootRelativeSourcesPath = path.relative(config.paths.root, config.paths.sources);
-  const exposedRootPath = getExposedPath(config);
 
   const res = new Map<string, ResolvedFile>();
   const deref = astDereferencer(solcOutput);
