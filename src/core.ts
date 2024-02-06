@@ -51,11 +51,15 @@ export function getExposed(
     }
 
     if (config.exposed.imports) {
-      for (const imp of findAll('ImportDirective', ast)) {
+      const queue = new Set(findAll('ImportDirective', ast));
+      for (const imp of queue) {
         if (imp.absolutePath.startsWith(path.normalize(rootRelativeSourcesPath + '/'))) {
           continue;
         }
         const impUnit = deref('SourceUnit', imp.sourceUnit);
+        for (const indirectImp of findAll('ImportDirective', impUnit)) {
+          queue.add(indirectImp);
+        }
         for (const { foreign } of imp.symbolAliases) {
           const foreignId = impUnit.exportedSymbols[foreign.name]?.[0];
           assert(foreignId !== undefined);
