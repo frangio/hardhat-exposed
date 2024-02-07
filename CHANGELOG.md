@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.14
+
+- Fix import handling to fully consider indirect imports.
+
 ## 0.3.13
 
 - Interfaces are not longer exposed.
