@@ -31,6 +31,7 @@ export const getExposedPath = (config: Config) => path.join(config.paths.root, c
 export function getExposed(
   solcOutput: SolcOutput,
   include: (sourceName: string) => boolean,
+  exclude: (sourceName: string) => boolean,
   config: Config,
 ): Map<string, ResolvedFile> {
   const rootRelativeSourcesPath = path.relative(config.paths.root, config.paths.sources);
@@ -41,7 +42,7 @@ export function getExposed(
   const imports: Record<string, Set<ContractDefinition>> = {};
 
   for (const { ast } of Object.values(solcOutput.sources)) {
-    if (!include(ast.absolutePath)) {
+    if (!include(ast.absolutePath) || exclude(ast.absolutePath)) {
       continue;
     }
 
@@ -74,6 +75,9 @@ export function getExposed(
   }
 
   for (const [absoluteImportedPath, contracts] of Object.entries(imports)) {
+    if (exclude(absoluteImportedPath)) {
+      continue;
+    }
     const filter: ContractFilter = node => contracts.has(node);
     const ast = solcOutput.sources[absoluteImportedPath]?.ast;
     assert(ast !== undefined);
