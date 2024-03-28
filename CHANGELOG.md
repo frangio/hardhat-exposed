@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix function clashes when ABI types are not able to disambiguate multiple functions.
+
 ## 0.3.14
 
 - Fix import handling to fully consider indirect imports.
