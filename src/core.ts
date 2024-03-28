@@ -421,7 +421,7 @@ function isExternalizable(fnDef: FunctionDefinition, deref: ASTDereferencer): bo
 function isTypeExternalizable(typeName: TypeName | null | undefined, deref: ASTDereferencer): boolean {
   if (typeName == undefined) {
     return true;
-  } if (typeName.nodeType === 'UserDefinedTypeName') {
+  } else if (typeName.nodeType === 'UserDefinedTypeName') {
     const typeDef = derefUserDefinedTypeName(deref, typeName);
     if (typeDef.nodeType !== 'StructDefinition') {
       return true;
