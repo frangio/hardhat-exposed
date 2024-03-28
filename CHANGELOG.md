@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Fix function clash when using different UDVT with similar underlying type.
+- Fix function clashes when ABI types are not able to disambiguate multiple functions.
 
 ## 0.3.14
 
