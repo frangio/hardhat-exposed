@@ -452,13 +452,10 @@ function getFunctionArguments(fnDef: FunctionDefinition, context: ContractDefini
       const storageVar = 'v_' + storageType.replace(/[^0-9a-zA-Z$_]+/g, '_');
       // The argument is an index to an array in storage.
       return { name, type: 'uint256', storageVar, storageType };
-    } else if (p.typeName?.nodeType == 'UserDefinedTypeName') {
-      const type = getVarType(p, context, deref, 'calldata');
-      const udvtType = 'bytes32'; // TODO: Do an actual resolution
-      return { name, type, udvtType };
     } else {
       const type = getVarType(p, context, deref, 'calldata');
-      return { name, type };
+      const udvtType = getVarUdvtType(p, context, deref, 'calldata');
+      return { name, type, udvtType };
     }
   });
 }
@@ -511,6 +508,27 @@ function getType(typeName: TypeName, context: ContractDefinition, deref: ASTDere
   }
 
   return type;
+}
+
+function getVarUdvtType(varDecl: VariableDeclaration, context: ContractDefinition, deref: ASTDereferencer, location: StorageLocation | null = varDecl.storageLocation): string | undefined {
+  if (!varDecl.typeName) {
+    throw new Error('Missing type information');
+  }
+  return getUdvtType(varDecl.typeName, context, deref, location);
+}
+
+function getUdvtType(typeName: TypeName, context: ContractDefinition, deref: ASTDereferencer, location: StorageLocation | null): string | undefined {
+  const { typeString, typeIdentifier } = typeName.typeDescriptions;
+  if (typeof typeString !== 'string' || typeof typeIdentifier !== 'string') {
+    throw new Error('Missing type information');
+  }
+
+  // TODO: recover UDVT underlying properly
+  if (typeIdentifier.startsWith('t_userDefinedValueType')) {
+    return 'bytes32';
+  } else {
+    return undefined;
+  }
 }
 
 function getVariables(contract: ContractDefinition, deref: ASTDereferencer, subset?: Visibility[]): VariableDeclaration[] {
