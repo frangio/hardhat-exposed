@@ -276,3 +276,16 @@ library UdvtConflict {
         return mySecondType.unwrap(t);
     }
 }
+
+library UdvtNoConflict {
+    type myFirstType is bytes32;
+    type mySecondType is uint256;
+
+    function unwrap(myFirstType t) internal pure returns (bytes32) {
+        return myFirstType.unwrap(t);
+    }
+
+    function unwrap(mySecondType t) internal pure returns (uint256) {
+        return mySecondType.unwrap(t);
+    }
+}

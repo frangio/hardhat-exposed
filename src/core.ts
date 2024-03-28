@@ -518,17 +518,13 @@ function getVarUdvtType(varDecl: VariableDeclaration, context: ContractDefinitio
 }
 
 function getUdvtType(typeName: TypeName, context: ContractDefinition, deref: ASTDereferencer, location: StorageLocation | null): string | undefined {
-  const { typeString, typeIdentifier } = typeName.typeDescriptions;
-  if (typeof typeString !== 'string' || typeof typeIdentifier !== 'string') {
-    throw new Error('Missing type information');
-  }
+  try {
+    if (typeName.nodeType === 'UserDefinedTypeName') {
+      return deref('UserDefinedValueTypeDefinition', typeName.referencedDeclaration).underlyingType.typeDescriptions.typeString ?? undefined;
+    }
+  } catch { /* passthrough */ }
 
-  // TODO: recover UDVT underlying properly
-  if (typeIdentifier.startsWith('t_userDefinedValueType')) {
-    return 'bytes32';
-  } else {
-    return undefined;
-  }
+  return undefined;
 }
 
 function getVariables(contract: ContractDefinition, deref: ASTDereferencer, subset?: Visibility[]): VariableDeclaration[] {
