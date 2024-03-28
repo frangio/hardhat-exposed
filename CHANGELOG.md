@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.15
 
 - Fix function clashes when ABI types are not able to disambiguate multiple functions.
 
