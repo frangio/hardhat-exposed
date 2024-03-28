@@ -1,8 +1,8 @@
 import path from 'path';
 
-import { findAll, astDereferencer, ASTDereferencer, ASTDereferencerError } from 'solidity-ast/utils';
+import { findAll, astDereferencer, ASTDereferencer } from 'solidity-ast/utils';
 import { formatLines, Lines, spaceBetween } from './utils/format-lines';
-import type { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName, InheritanceSpecifier, ModifierInvocation, FunctionCall } from 'solidity-ast';
+import type { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName, InheritanceSpecifier, ModifierInvocation, FunctionCall, UserDefinedTypeName } from 'solidity-ast';
 import type { FileContent, ProjectPathsConfig, ResolvedFile } from 'hardhat/types';
 import type { ExposedConfig, ExposedUserConfig } from './config';
 import assert from 'assert';
@@ -205,7 +205,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
             ]),
             // external functions
             ...externalizableFunctions.map(fn => {
-              const fnName = clashingFunctions[getFunctionId(fn, c, deref)] === 1 ? fn.name : getFunctionNameQualified(fn, c, deref, false);
+              const fnName = clashingFunctions[getFunctionId(fn, c, deref)] === 1 ? fn.name : getFunctionNameQualified(fn, c, deref, true);
               const fnArgs = getFunctionArguments(fn, c, deref);
               const fnRets = getFunctionReturnParameters(fn, c, deref);
               const evName = isNonViewWithReturns(fn) && (clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, c, deref, false));
@@ -282,13 +282,16 @@ function areFunctionsFullyImplemented(contract: ContractDefinition, deref: ASTDe
 }
 
 function getFunctionId(fn: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer): string {
-  const storageArgs = new Set<Argument>(getStorageArguments(fn, context, deref));
-  const nonStorageArgs = getFunctionArguments(fn, context, deref).filter(a => !storageArgs.has(a));
-  return fn.name + nonStorageArgs.map(a => a.udvtType ?? a.type).join('');
+  const abiTypes = getFunctionArguments(fn, context, deref).map(a => a.abiType);
+  return fn.name + abiTypes.join(',');
 }
 
-function getFunctionNameQualified(fn: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer, onlyStorage: boolean = true): string {
-  return fn.name + (onlyStorage ? getStorageArguments(fn, context, deref) : getFunctionArguments(fn, context, deref))
+function getFunctionNameQualified(fn: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer, onlyConflicting: boolean): string {
+  let args = getFunctionArguments(fn, context, deref);
+  if (onlyConflicting) {
+    args = args.filter(a => a.type !== a.abiType || a.storageType !== undefined);
+  }
+  return fn.name + args
     .map(arg => arg.storageType ?? arg.type)
     .map(type => type.replace(/ .*/,'').replace(/[^0-9a-zA-Z$_]+/g, '_')) // sanitize
     .join('_')
@@ -419,7 +422,7 @@ function isTypeExternalizable(typeName: TypeName | null | undefined, deref: ASTD
   if (typeName == undefined) {
     return true;
   } if (typeName.nodeType === 'UserDefinedTypeName') {
-    const typeDef = deref(['StructDefinition', 'EnumDefinition', 'ContractDefinition', 'UserDefinedValueTypeDefinition'], typeName.referencedDeclaration);
+    const typeDef = derefUserDefinedTypeName(deref, typeName);
     if (typeDef.nodeType !== 'StructDefinition') {
       return true;
     } else {
@@ -437,9 +440,9 @@ function isNonViewWithReturns(fnDef: FunctionDefinition): boolean {
 interface Argument {
   type: string;
   name: string;
+  abiType: string;
   storageVar?: string;
   storageType?: string;
-  udvtType?: string;
 }
 
 const printArgument = (arg: Argument) => `${arg.type} ${arg.name}`;
@@ -451,11 +454,12 @@ function getFunctionArguments(fnDef: FunctionDefinition, context: ContractDefini
       const storageType = getVarType(p, context, deref, null);
       const storageVar = 'v_' + storageType.replace(/[^0-9a-zA-Z$_]+/g, '_');
       // The argument is an index to an array in storage.
-      return { name, type: 'uint256', storageVar, storageType };
+      const type = 'uint256';
+      return { name, type, abiType: type, storageVar, storageType };
     } else {
       const type = getVarType(p, context, deref, 'calldata');
-      const udvtType = getVarUdvtType(p, context, deref, 'calldata');
-      return { name, type, udvtType };
+      const abiType = getVarAbiType(p, context, deref, 'calldata');
+      return { name, type, abiType };
     }
   });
 }
@@ -477,7 +481,8 @@ function getFunctionReturnParameters(fnDef: FunctionDefinition, context: Contrac
   return fnDef.returnParameters.parameters.map((p, i) => {
     const name = p.name || `ret${i}`;
     const type = getVarType(p, context, deref, location);
-    return { name, type };
+    const abiType = getVarAbiType(p, context, deref, location);
+    return { name, type, abiType };
   });
 }
 
@@ -510,24 +515,47 @@ function getType(typeName: TypeName, context: ContractDefinition, deref: ASTDere
   return type;
 }
 
-function getVarUdvtType(varDecl: VariableDeclaration, context: ContractDefinition, deref: ASTDereferencer, location: StorageLocation | null = varDecl.storageLocation): string | undefined {
+function getVarAbiType(varDecl: VariableDeclaration, context: ContractDefinition, deref: ASTDereferencer, location: StorageLocation | null = varDecl.storageLocation): string {
   if (!varDecl.typeName) {
     throw new Error('Missing type information');
   }
-  return getUdvtType(varDecl.typeName, context, deref, location);
+  return getAbiType(varDecl.typeName, context, deref, location);
 }
 
-function getUdvtType(typeName: TypeName, context: ContractDefinition, deref: ASTDereferencer, location: StorageLocation | null): string | undefined {
-  try {
-    if (typeName.nodeType === 'UserDefinedTypeName') {
-      return deref('UserDefinedValueTypeDefinition', typeName.referencedDeclaration).underlyingType.typeDescriptions.typeString ?? undefined;
-    }
-  } catch (err: unknown) {
-    if (err instanceof ASTDereferencerError) {
-      return undefined;
-    } else {
-      throw err;
-    }
+function getAbiType(typeName: TypeName, context: ContractDefinition, deref: ASTDereferencer, location: StorageLocation | null): string {
+  switch (typeName.nodeType) {
+    case 'ElementaryTypeName':
+    case 'ArrayTypeName':
+      const { typeString } = typeName.typeDescriptions;
+      assert(typeString != undefined);
+      return typeString;
+
+    case 'UserDefinedTypeName':
+      const typeDef = derefUserDefinedTypeName(deref, typeName);
+      switch (typeDef.nodeType) {
+        case 'UserDefinedValueTypeDefinition':
+          const { underlyingType } = typeDef;
+          const { typeString } = underlyingType.typeDescriptions;
+          assert(typeString != undefined);
+          return typeString;
+
+        case 'EnumDefinition':
+          assert(typeDef.members.length < 256);
+          return 'uint8';
+
+        case 'ContractDefinition':
+          return 'address';
+
+        case 'StructDefinition':
+          if (location === 'storage') {
+            throw new Error('Unexpected error'); // is treated separately in getFunctionArguments
+          } else {
+            return '(' + typeDef.members.map(v => getVarAbiType(v, context, deref, location)).join(',') + ')';
+          }
+      }
+
+    default:
+      throw new Error('Unknown ABI type');
   }
 }
 
@@ -553,7 +581,11 @@ function getVarGetterArgs(v: VariableDeclaration, context: ContractDefinition, d
   }
   const types = [];
   for (let t = v.typeName; t.nodeType === 'Mapping'; t = t.valueType) {
-    types.push({ name: `arg${types.length}`, type: getType(t.keyType, context, deref, 'memory') })
+    types.push({
+      name: `arg${types.length}`,
+      type: getType(t.keyType, context, deref, 'memory'),
+      abiType: getAbiType(t.keyType, context, deref, 'memory'),
+    })
   }
   return types;
 }
@@ -620,4 +652,8 @@ function mustGet<K, V>(map: Map<K, V>, key: K): V {
 function createNonCryptographicHashBasedIdentifier(input: Buffer): Buffer {
   const { createHash } = require("crypto") as typeof import('crypto');
   return createHash("md5").update(input).digest();
+}
+
+function derefUserDefinedTypeName(deref: ASTDereferencer, typeName: UserDefinedTypeName) {
+  return deref(['StructDefinition', 'EnumDefinition', 'ContractDefinition', 'UserDefinedValueTypeDefinition'], typeName.referencedDeclaration);
 }

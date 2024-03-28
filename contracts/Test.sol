@@ -289,3 +289,8 @@ library UdvtNoConflict {
         return mySecondType.unwrap(t);
     }
 }
+
+contract Conflicts {
+    function _a(HasEnum) internal {}
+    function _a(HasReceiveFunction) internal {}
+}
