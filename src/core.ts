@@ -1,6 +1,6 @@
 import path from 'path';
 
-import { findAll, astDereferencer, ASTDereferencer } from 'solidity-ast/utils';
+import { findAll, astDereferencer, ASTDereferencer, ASTDereferencerError } from 'solidity-ast/utils';
 import { formatLines, Lines, spaceBetween } from './utils/format-lines';
 import type { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName, InheritanceSpecifier, ModifierInvocation, FunctionCall } from 'solidity-ast';
 import type { FileContent, ProjectPathsConfig, ResolvedFile } from 'hardhat/types';
@@ -522,9 +522,13 @@ function getUdvtType(typeName: TypeName, context: ContractDefinition, deref: AST
     if (typeName.nodeType === 'UserDefinedTypeName') {
       return deref('UserDefinedValueTypeDefinition', typeName.referencedDeclaration).underlyingType.typeDescriptions.typeString ?? undefined;
     }
-  } catch { /* passthrough */ }
-
-  return undefined;
+  } catch (err: unknown) {
+    if (err instanceof ASTDereferencerError) {
+      return undefined;
+    } else {
+      throw err;
+    }
+  }
 }
 
 function getVariables(contract: ContractDefinition, deref: ASTDereferencer, subset?: Visibility[]): VariableDeclaration[] {
