@@ -2,9 +2,9 @@ import path from 'path';
 
 import { findAll, astDereferencer, ASTDereferencer } from 'solidity-ast/utils';
 import { formatLines, Lines, spaceBetween } from './utils/format-lines';
-import type { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeDescriptions, TypeName, InheritanceSpecifier, ModifierInvocation, FunctionCall, UserDefinedTypeName } from 'solidity-ast';
+import type { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeName, UserDefinedTypeName } from 'solidity-ast';
 import type { FileContent, ProjectPathsConfig, ResolvedFile } from 'hardhat/types';
-import type { ExposedConfig, ExposedUserConfig } from './config';
+import type { ExposedConfig } from './config';
 import assert from 'assert';
 
 export interface SolcOutput {
