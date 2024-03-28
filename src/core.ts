@@ -205,7 +205,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
             ]),
             // external functions
             ...externalizableFunctions.map(fn => {
-              const fnName = clashingFunctions[getFunctionId(fn, c, deref)] === 1 ? fn.name : getFunctionNameQualified(fn, c, deref);
+              const fnName = clashingFunctions[getFunctionId(fn, c, deref)] === 1 ? fn.name : getFunctionNameQualified(fn, c, deref, false);
               const fnArgs = getFunctionArguments(fn, c, deref);
               const fnRets = getFunctionReturnParameters(fn, c, deref);
               const evName = isNonViewWithReturns(fn) && (clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, c, deref, false));
@@ -284,7 +284,7 @@ function areFunctionsFullyImplemented(contract: ContractDefinition, deref: ASTDe
 function getFunctionId(fn: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer): string {
   const storageArgs = new Set<Argument>(getStorageArguments(fn, context, deref));
   const nonStorageArgs = getFunctionArguments(fn, context, deref).filter(a => !storageArgs.has(a));
-  return fn.name + nonStorageArgs.map(a => a.type).join('');
+  return fn.name + nonStorageArgs.map(a => a.udvtType ?? a.type).join('');
 }
 
 function getFunctionNameQualified(fn: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer, onlyStorage: boolean = true): string {
@@ -439,6 +439,7 @@ interface Argument {
   name: string;
   storageVar?: string;
   storageType?: string;
+  udvtType?: string;
 }
 
 const printArgument = (arg: Argument) => `${arg.type} ${arg.name}`;
@@ -453,7 +454,8 @@ function getFunctionArguments(fnDef: FunctionDefinition, context: ContractDefini
       return { name, type: 'uint256', storageVar, storageType };
     } else {
       const type = getVarType(p, context, deref, 'calldata');
-      return { name, type };
+      const udvtType = getVarUdvtType(p, context, deref, 'calldata');
+      return { name, type, udvtType };
     }
   });
 }
@@ -506,6 +508,23 @@ function getType(typeName: TypeName, context: ContractDefinition, deref: ASTDere
   }
 
   return type;
+}
+
+function getVarUdvtType(varDecl: VariableDeclaration, context: ContractDefinition, deref: ASTDereferencer, location: StorageLocation | null = varDecl.storageLocation): string | undefined {
+  if (!varDecl.typeName) {
+    throw new Error('Missing type information');
+  }
+  return getUdvtType(varDecl.typeName, context, deref, location);
+}
+
+function getUdvtType(typeName: TypeName, context: ContractDefinition, deref: ASTDereferencer, location: StorageLocation | null): string | undefined {
+  try {
+    if (typeName.nodeType === 'UserDefinedTypeName') {
+      return deref('UserDefinedValueTypeDefinition', typeName.referencedDeclaration).underlyingType.typeDescriptions.typeString ?? undefined;
+    }
+  } catch { /* passthrough */ }
+
+  return undefined;
 }
 
 function getVariables(contract: ContractDefinition, deref: ASTDereferencer, subset?: Visibility[]): VariableDeclaration[] {

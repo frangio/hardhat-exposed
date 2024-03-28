@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix function clash when using different UDVT with similar underlying type.
+
 ## 0.3.14
 
 - Fix import handling to fully consider indirect imports.
