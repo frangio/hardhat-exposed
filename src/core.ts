@@ -205,7 +205,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
             ]),
             // external functions
             ...externalizableFunctions.map(fn => {
-              const fnName = clashingFunctions[getFunctionId(fn, c, deref)] === 1 ? fn.name : getFunctionNameQualified(fn, c, deref);
+              const fnName = clashingFunctions[getFunctionId(fn, c, deref)] === 1 ? fn.name : getFunctionNameQualified(fn, c, deref, false);
               const fnArgs = getFunctionArguments(fn, c, deref);
               const fnRets = getFunctionReturnParameters(fn, c, deref);
               const evName = isNonViewWithReturns(fn) && (clashingEvents[fn.name] === 1 ? fn.name : getFunctionNameQualified(fn, c, deref, false));
@@ -284,7 +284,7 @@ function areFunctionsFullyImplemented(contract: ContractDefinition, deref: ASTDe
 function getFunctionId(fn: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer): string {
   const storageArgs = new Set<Argument>(getStorageArguments(fn, context, deref));
   const nonStorageArgs = getFunctionArguments(fn, context, deref).filter(a => !storageArgs.has(a));
-  return fn.name + nonStorageArgs.map(a => a.type).join('');
+  return fn.name + nonStorageArgs.map(a => a.udvtType ?? a.type).join('');
 }
 
 function getFunctionNameQualified(fn: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer, onlyStorage: boolean = true): string {
@@ -439,6 +439,7 @@ interface Argument {
   name: string;
   storageVar?: string;
   storageType?: string;
+  udvtType?: string;
 }
 
 const printArgument = (arg: Argument) => `${arg.type} ${arg.name}`;
@@ -451,6 +452,10 @@ function getFunctionArguments(fnDef: FunctionDefinition, context: ContractDefini
       const storageVar = 'v_' + storageType.replace(/[^0-9a-zA-Z$_]+/g, '_');
       // The argument is an index to an array in storage.
       return { name, type: 'uint256', storageVar, storageType };
+    } else if (p.typeName?.nodeType == 'UserDefinedTypeName') {
+      const type = getVarType(p, context, deref, 'calldata');
+      const udvtType = 'bytes32'; // TODO: Do an actual resolution
+      return { name, type, udvtType };
     } else {
       const type = getVarType(p, context, deref, 'calldata');
       return { name, type };
