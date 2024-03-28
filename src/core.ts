@@ -534,8 +534,7 @@ function getAbiType(typeName: TypeName, context: ContractDefinition, deref: ASTD
       const typeDef = derefUserDefinedTypeName(deref, typeName);
       switch (typeDef.nodeType) {
         case 'UserDefinedValueTypeDefinition':
-          const { underlyingType } = typeDef;
-          const { typeString } = underlyingType.typeDescriptions;
+          const { typeString } = typeDef.underlyingType.typeDescriptions;
           assert(typeString != undefined);
           return typeString;
 
