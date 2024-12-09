@@ -88,8 +88,6 @@ task<CompileJobArgs>(TASK_COMPILE_SOLIDITY_COMPILE_JOB, async (args, hre, superC
 async function getExposedJob(hre: HardhatRuntimeEnvironment, compilationJob: CompilationJob, output: CompilerOutput): Promise<CompilationJob> {
   const { getExposed } = await import('./core');
 
-  const inputFiles = Object.fromEntries(compilationJob.getResolvedFiles().map(rf => [rf.sourceName, rf.absolutePath]));
-
   const include = await getMatcher(hre.config);
   const exposed = getExposed(output, include, hre.config);
 
