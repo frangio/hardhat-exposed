@@ -263,3 +263,34 @@ library LibraryHasStruct {
 
     function foo() internal returns (Inner memory) {}
 }
+
+library UdvtConflict {
+    type myFirstType is bytes32;
+    type mySecondType is bytes32;
+
+    function unwrap(myFirstType t) internal pure returns (bytes32) {
+        return myFirstType.unwrap(t);
+    }
+
+    function unwrap(mySecondType t) internal pure returns (bytes32) {
+        return mySecondType.unwrap(t);
+    }
+}
+
+library UdvtNoConflict {
+    type myFirstType is bytes32;
+    type mySecondType is uint256;
+
+    function unwrap(myFirstType t) internal pure returns (bytes32) {
+        return myFirstType.unwrap(t);
+    }
+
+    function unwrap(mySecondType t) internal pure returns (uint256) {
+        return mySecondType.unwrap(t);
+    }
+}
+
+contract Conflicts {
+    function _a(HasEnum) internal {}
+    function _a(HasReceiveFunction) internal {}
+}
