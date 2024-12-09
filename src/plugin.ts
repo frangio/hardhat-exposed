@@ -86,10 +86,15 @@ task<CompileJobArgs>(TASK_COMPILE_SOLIDITY_COMPILE_JOB, async (args, hre, superC
 });
 
 async function getExposedJob(hre: HardhatRuntimeEnvironment, compilationJob: CompilationJob, output: CompilerOutput): Promise<CompilationJob> {
+  const path = await import('path');
+  const { isMatch } = await import('micromatch');
   const { getExposed } = await import('./core');
 
-  const include = await getMatcher(hre.config);
-  const exposed = getExposed(output, include, hre.config);
+  const sourcesDir = path.relative(hre.config.paths.root, hre.config.paths.sources);
+
+  const include = (sourceName: string) => sourceName.startsWith(sourcesDir) && hre.config.exposed.include.some(p => isMatch(path.relative(sourcesDir, sourceName), p));
+  const exclude = (sourceName: string) => hre.config.exposed.exclude.some(p => isMatch(path.relative(sourcesDir, sourceName), p));
+  const exposed = getExposed(output, include, exclude, hre.config);
 
   const cj: CompilationJob = {
     getResolvedFiles: () => [...exposed.values()],
@@ -118,24 +123,4 @@ async function cleanExposed(hre: HardhatRuntimeEnvironment) {
 
   const exposedPath = getExposedPath(hre.config);
   await fs.rm(exposedPath, { recursive: true, force: true });
-}
-
-async function getMatcher(config: HardhatConfig) {
-  const { isMatch } = await import('micromatch');
-  const path = await import('path');
-
-  const sourcesDir = path.relative(config.paths.root, config.paths.sources);
-  const includePatterns = config.exposed.include;
-  const excludePatterns = config.exposed.exclude;
-
-  return function (sourceName: string) {
-    if (!sourceName.startsWith(sourcesDir)) {
-      return false;
-    }
-    sourceName = path.relative(sourcesDir, sourceName);
-    return (
-      includePatterns.some(p => isMatch(sourceName, p)) &&
-      !excludePatterns.some(p => isMatch(sourceName, p))
-    );
-  };
 }
