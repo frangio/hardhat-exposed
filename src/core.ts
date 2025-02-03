@@ -217,14 +217,12 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
                 'external',
               ];
 
-              if (fn.stateMutability !== 'nonpayable') {
-                if (fn.stateMutability === 'pure' && fnArgs.some(a => a.storageVar)) {
-                  header.push('view');
-                } else {
-                  header.push(fn.stateMutability);
-                }
-              } else if (isLibrary) {
+              if (fn.stateMutability === 'nonpayable') {
                 header.push('payable');
+              } else if (fn.stateMutability === 'pure' && fnArgs.some(a => a.storageVar)) {
+                header.push('view');
+              } else {
+                header.push(fn.stateMutability);
               }
 
               if (fn.returnParameters.parameters.length > 0) {
