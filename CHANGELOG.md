@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.16
+
+- Make all exposed internal functions payable.
+
+
 ## 0.3.15
 
 - Fix function clashes when ABI types are not able to disambiguate multiple functions.
