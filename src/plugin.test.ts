@@ -1,4 +1,3 @@
-/// <reference types="@nomiclabs/hardhat-truffle5" />
 /// <reference types="@nomiclabs/hardhat-ethers" />
 
 import test from 'ava';
@@ -26,10 +25,4 @@ test('ethers', async t => {
   t.like(await withVars.$var8(1, true), {
     0: { a: BigNumber.from(11) },
   });
-});
-
-test('truffle', async t => {
-  const Foo = hre.artifacts.require('$Foo');
-  const foo = await Foo.new();
-  t.is((await foo.$_testFoo()).toString('hex'), 'f00');
 });
