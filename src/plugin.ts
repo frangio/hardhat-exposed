@@ -14,6 +14,7 @@ import type {} from './type-extensions';
 extendConfig((config, { exposed: userConfig }) => {
   config.exposed = {
     ...userConfig,
+    prefix: userConfig?.prefix ?? '$',
     exclude: userConfig?.exclude ?? [],
     include: userConfig?.include ?? ['**/*'],
     outDir: userConfig?.outDir ?? "contracts-exposed",
