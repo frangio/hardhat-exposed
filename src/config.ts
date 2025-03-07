@@ -8,6 +8,7 @@ export interface ExposedUserConfig {
 }
 
 export interface ExposedConfig extends ExposedUserConfig {
+  prefix: string;
   exclude: string[];
   include: string[];
   outDir: string;

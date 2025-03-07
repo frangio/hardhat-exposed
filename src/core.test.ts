@@ -6,6 +6,7 @@ import { BuildInfo } from 'hardhat/types';
 import { getExposed, getExposedPath } from './core';
 
 const baseConfig = {
+  prefix: '$',
   exclude: [],
   include: [],
   outDir: 'contracts-exposed',

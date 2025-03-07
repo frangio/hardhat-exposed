@@ -17,7 +17,6 @@ export interface SolcOutput {
 }
 
 const exposedVersionPragma = '>=0.6.0';
-const defaultPrefix = '$';
 
 interface Config {
   paths: ProjectPathsConfig,
@@ -99,7 +98,7 @@ function getExposedFile(paths: ProjectPathsConfig, ast: SourceUnit, deref: ASTDe
   const dirname = path.dirname(exposedPath);
 
   const relativizePath = (p: string) => (p.startsWith(sourcesPathPrefix) ? path.relative(dirname, p) : p).replace(/\\/g, '/');
-  const content = getExposedContent(ast, relativizePath, deref, initializers, prefix, filter);
+  const content = getExposedContent(ast, relativizePath, deref, prefix, initializers, filter);
 
   if (content === undefined) {
     return undefined;
@@ -117,7 +116,7 @@ function getExposedFile(paths: ProjectPathsConfig, ast: SourceUnit, deref: ASTDe
   };
 }
 
-function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => string, deref: ASTDereferencer, initializers = false, prefix = defaultPrefix, filter?: ContractFilter): FileContent | undefined {
+function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => string, deref: ASTDereferencer, prefix: string, initializers = false, filter?: ContractFilter): FileContent | undefined {
   if (prefix === '' || /^\d|[^0-9a-z_$]/i.test(prefix)) {
     throw new Error(`Prefix '${prefix}' is not valid`);
   }
