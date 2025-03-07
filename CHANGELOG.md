@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.17
+
+- Add `prefix` type to `ExposedConfig`
+
 ## 0.3.16
 
 - Make all exposed internal functions payable.
