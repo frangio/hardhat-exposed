@@ -232,6 +232,27 @@ contract WithInternalReturns {
     }
 }
 
+contract WithModifiers {
+    uint256 private counter = 0;
+
+    modifier increments {
+        counter++;
+        _;
+    }
+
+    modifier incrementsWithParam(uint256 param) {
+        counter += param;
+        _;
+    }
+
+    modifier incrementsWithMultipleParams(bool param1, uint256 param2) {
+        if (param1) {
+            counter += param2;
+        }
+        _;
+    }
+}
+
 contract HasReceiveFunction {
     receive() external payable {}
 }
