@@ -207,9 +207,6 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
             ...modifiers.map(m => {
               const fnArgs = getFunctionArguments(m, c, deref)
 
-              console.log(fnArgs.map(printArgument))
-              console.log(fnArgs.map(printArgument).join(', '))
-
               // function header
               const header = [
                 'function',
