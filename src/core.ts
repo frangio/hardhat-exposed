@@ -174,7 +174,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
           [`bytes32 public constant __hh_exposed_bytecode_marker = "hardhat-exposed";\n`],
           spaceBetween(
             // slots for storage function parameters
-            ...getAllStorageArguments(externalizableFunctions, c, deref).map(a => [
+            ...getAllStorageArguments([...externalizableFunctions, ...modifiers], c, deref).map(a => [
               `mapping(uint256 => ${a.storageType}) internal ${prefix}${a.storageVar};`,
             ]),
             // events for internal returns
@@ -213,7 +213,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
                 `${prefix}${m.name}(${fnArgs.map(printArgument).join(', ')})`,
                 'external',
                 'payable',
-                `${m.name}(${fnArgs.map(a => a.name).join(', ')})`,
+                `${m.name}(${fnArgs.map(a => a.storageVar ? `${prefix}${a.storageVar}[${a.name}]` : a.name).join(', ')})`,
                 '{}',
               ];
 
@@ -478,12 +478,12 @@ function getFunctionArguments(fnDef: FunctionDefinition | ModifierDefinition, co
   });
 }
 
-function getStorageArguments(fn: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer): Required<Argument>[] {
+function getStorageArguments(fn: FunctionDefinition | ModifierDefinition, context: ContractDefinition, deref: ASTDereferencer): Required<Argument>[] {
   return getFunctionArguments(fn, context, deref)
     .filter((a): a is Required<Argument> => !!(a.storageVar && a.storageType));
 }
 
-function getAllStorageArguments(fns: FunctionDefinition[], context: ContractDefinition, deref: ASTDereferencer): Required<Argument>[] {
+function getAllStorageArguments(fns: (FunctionDefinition | ModifierDefinition)[], context: ContractDefinition, deref: ASTDereferencer): Required<Argument>[] {
   return [
     ...new Map(
       fns.flatMap(fn => getStorageArguments(fn, context, deref)).map(a => [a.storageVar, a]),

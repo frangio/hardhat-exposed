@@ -251,6 +251,11 @@ contract WithModifiers {
         }
         _;
     }
+
+    modifier incrementsWithStorageInput(S storage t) {
+        counter += t.x;
+        _;
+    }
 }
 
 contract HasReceiveFunction {
