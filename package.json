@@ -6,6 +6,7 @@
   "author": "Francisco Giordano <frangio.1@gmail.com>",
   "repository": "github:frangio/hardhat-exposed",
   "main": "dist/plugin.js",
+  "types": "dist/plugin.d.ts",
   "files": [
     "/dist",
     "/src",
