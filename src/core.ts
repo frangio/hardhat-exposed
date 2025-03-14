@@ -637,11 +637,17 @@ function getFunctions(contract: ContractDefinition, deref: ASTDereferencer, subs
 function getModifiers(contract: ContractDefinition, deref: ASTDereferencer): ModifierDefinition[] {
   const parents = contract.linearizedBaseContracts.map(deref('ContractDefinition'));
 
+  const overridden = new Set<number>();
   const res = [];
 
   for (const parent of parents) {
     for (const m of findAll('ModifierDefinition', parent)) {
+      if (!overridden.has(m.id)) {
         res.push(m);
+      }
+      for (const b of m.baseModifiers ?? []) {
+        overridden.add(b);
+      }
     }
   }
 

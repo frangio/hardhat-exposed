@@ -232,7 +232,13 @@ contract WithInternalReturns {
     }
 }
 
-contract WithModifiers {
+contract WithVirtualModifiers {
+    modifier virtualModifier () virtual {
+        _;
+    }
+}
+
+contract WithModifiers is WithVirtualModifiers {
     uint256 private counter = 0;
 
     modifier increments {
@@ -254,6 +260,10 @@ contract WithModifiers {
 
     modifier incrementsWithStorageInput(S storage t) {
         counter += t.x;
+        _;
+    }
+
+    modifier virtualModifier () override {
         _;
     }
 }
