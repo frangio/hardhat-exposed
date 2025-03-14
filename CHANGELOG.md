@@ -2,6 +2,7 @@
 
 ## 0.3.18
 
+- Expose modifiers in addition to functions.
 - Export Hardhat config type extensions.
 - Update TypeScript target to ES2022.
 
