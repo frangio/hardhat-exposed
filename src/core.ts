@@ -2,7 +2,7 @@ import path from 'path';
 
 import { findAll, astDereferencer, ASTDereferencer } from 'solidity-ast/utils';
 import { formatLines, Lines, spaceBetween } from './utils/format-lines';
-import type { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeName, UserDefinedTypeName } from 'solidity-ast';
+import type { Visibility, SourceUnit, ContractDefinition, FunctionDefinition, VariableDeclaration, StorageLocation, TypeName, UserDefinedTypeName, ModifierDefinition } from 'solidity-ast';
 import type { FileContent, ProjectPathsConfig, ResolvedFile } from 'hardhat/types';
 import type { ExposedConfig } from './config';
 import assert from 'assert';
@@ -152,6 +152,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
 
         const hasReceiveFunction = getFunctions(c, deref, [ 'external' ]).some(fn => fn.kind === 'receive');
         const externalizableVariables = getVariables(c, deref, subset).filter(v => v.typeName?.nodeType !== 'UserDefinedTypeName' || isTypeExternalizable(v.typeName, deref));
+        const modifiers = getModifiers(c, deref);
         const externalizableFunctions = getFunctions(c, deref, subset).filter(f => isExternalizable(f, deref));
         const returnedEventFunctions = externalizableFunctions.filter(fn => isNonViewWithReturns(fn));
 
@@ -173,7 +174,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
           [`bytes32 public constant __hh_exposed_bytecode_marker = "hardhat-exposed";\n`],
           spaceBetween(
             // slots for storage function parameters
-            ...getAllStorageArguments(externalizableFunctions, c, deref).map(a => [
+            ...getAllStorageArguments([...externalizableFunctions, ...modifiers], c, deref).map(a => [
               `mapping(uint256 => ${a.storageType}) internal ${prefix}${a.storageVar};`,
             ]),
             // events for internal returns
@@ -202,6 +203,22 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
               ],
               '}',
             ]),
+            // modifiers
+            ...modifiers.map(m => {
+              const fnArgs = getFunctionArguments(m, c, deref)
+
+              // function header
+              const header = [
+                'function',
+                `${prefix}${m.name}(${fnArgs.map(printArgument).join(', ')})`,
+                'external',
+                'payable',
+                `${m.name}(${fnArgs.map(a => a.storageVar ? `${prefix}${a.storageVar}[${a.name}]` : a.name).join(', ')})`,
+                '{}',
+              ];
+
+              return [header.join(' ')];
+            }),
             // external functions
             ...externalizableFunctions.map(fn => {
               const fnName = clashingFunctions[getFunctionId(fn, c, deref)] === 1 ? fn.name : getFunctionNameQualified(fn, c, deref, true);
@@ -444,7 +461,7 @@ interface Argument {
 
 const printArgument = (arg: Argument) => `${arg.type} ${arg.name}`;
 
-function getFunctionArguments(fnDef: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer): Argument[] {
+function getFunctionArguments(fnDef: FunctionDefinition | ModifierDefinition, context: ContractDefinition, deref: ASTDereferencer): Argument[] {
   return fnDef.parameters.parameters.map((p, i) => {
     const name = p.name || `arg${i}`;
     if (p.storageLocation === 'storage') {
@@ -461,12 +478,12 @@ function getFunctionArguments(fnDef: FunctionDefinition, context: ContractDefini
   });
 }
 
-function getStorageArguments(fn: FunctionDefinition, context: ContractDefinition, deref: ASTDereferencer): Required<Argument>[] {
+function getStorageArguments(fn: FunctionDefinition | ModifierDefinition, context: ContractDefinition, deref: ASTDereferencer): Required<Argument>[] {
   return getFunctionArguments(fn, context, deref)
     .filter((a): a is Required<Argument> => !!(a.storageVar && a.storageType));
 }
 
-function getAllStorageArguments(fns: FunctionDefinition[], context: ContractDefinition, deref: ASTDereferencer): Required<Argument>[] {
+function getAllStorageArguments(fns: (FunctionDefinition | ModifierDefinition)[], context: ContractDefinition, deref: ASTDereferencer): Required<Argument>[] {
   return [
     ...new Map(
       fns.flatMap(fn => getStorageArguments(fn, context, deref)).map(a => [a.storageVar, a]),
@@ -610,6 +627,26 @@ function getFunctions(contract: ContractDefinition, deref: ASTDereferencer, subs
       }
       for (const b of fn.baseFunctions ?? []) {
         overriden.add(b);
+      }
+    }
+  }
+
+  return res;
+}
+
+function getModifiers(contract: ContractDefinition, deref: ASTDereferencer): ModifierDefinition[] {
+  const parents = contract.linearizedBaseContracts.map(deref('ContractDefinition'));
+
+  const overridden = new Set<number>();
+  const res = [];
+
+  for (const parent of parents) {
+    for (const m of findAll('ModifierDefinition', parent)) {
+      if (!overridden.has(m.id)) {
+        res.push(m);
+      }
+      for (const b of m.baseModifiers ?? []) {
+        overridden.add(b);
       }
     }
   }

@@ -232,6 +232,42 @@ contract WithInternalReturns {
     }
 }
 
+contract WithVirtualModifiers {
+    modifier virtualModifier() virtual {
+        _;
+    }
+}
+
+contract WithModifiers is WithVirtualModifiers {
+    uint256 private counter = 0;
+
+    modifier increments {
+        counter++;
+        _;
+    }
+
+    modifier incrementsWithParam(uint256 param) {
+        counter += param;
+        _;
+    }
+
+    modifier incrementsWithMultipleParams(bool param1, uint256 param2) {
+        if (param1) {
+            counter += param2;
+        }
+        _;
+    }
+
+    modifier incrementsWithStorageInput(S storage t) {
+        counter += t.x;
+        _;
+    }
+
+    modifier virtualModifier() override {
+        _;
+    }
+}
+
 contract HasReceiveFunction {
     receive() external payable {}
 }
