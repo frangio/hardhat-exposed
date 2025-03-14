@@ -165,7 +165,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
         const clashingEvents: Record<string, number> = {};
         for (const fn of returnedEventFunctions) {
           clashingEvents[fn.name] ??= 0;
-          clashingEvents[fn.name] += 1;
+          clashingEvents[fn.name]! += 1;
         }
 
         return [
