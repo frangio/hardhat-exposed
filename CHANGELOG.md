@@ -1,13 +1,17 @@
 # Changelog
 
+## 0.3.18
+
+- Export Hardhat config type extensions.
+- Update TypeScript target to ES2022.
+
 ## 0.3.17
 
-- Add `prefix` type to `ExposedConfig`
+- Add `prefix` type to `ExposedConfig`.
 
 ## 0.3.16
 
 - Make all exposed internal functions payable.
-
 
 ## 0.3.15
 
