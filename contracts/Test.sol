@@ -233,7 +233,7 @@ contract WithInternalReturns {
 }
 
 contract WithVirtualModifiers {
-    modifier virtualModifier () virtual {
+    modifier virtualModifier() virtual {
         _;
     }
 }
@@ -263,7 +263,7 @@ contract WithModifiers is WithVirtualModifiers {
         _;
     }
 
-    modifier virtualModifier () override {
+    modifier virtualModifier() override {
         _;
     }
 }
