@@ -9,7 +9,7 @@ import {
 } from 'hardhat/builtin-tasks/task-names';
 import type { CompilationJob, CompilerInput, CompilerOutput, HardhatConfig, HardhatRuntimeEnvironment, SolcBuild } from 'hardhat/types';
 
-import './type-extensions';
+export type {} from './type-extensions';
 
 extendConfig((config, { exposed: userConfig }) => {
   config.exposed = {
