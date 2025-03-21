@@ -151,7 +151,7 @@ function getExposedContent(ast: SourceUnit, relativizePath: (p: string) => strin
         const subset: Visibility[] = isLibrary ? [ 'internal', 'public', 'external' ] : ['internal'];
 
         const hasReceiveFunction = getFunctions(c, deref, [ 'external' ]).some(fn => fn.kind === 'receive');
-        const externalizableVariables = getVariables(c, deref, subset).filter(v => v.typeName?.nodeType !== 'UserDefinedTypeName' || isTypeExternalizable(v.typeName, deref));
+        const externalizableVariables = getVariables(c, deref, subset).filter(v => (v.typeName?.nodeType !== 'UserDefinedTypeName' && v.typeName?.nodeType !== 'ArrayTypeName') || isTypeExternalizable(v.typeName, deref));
         const modifiers = getModifiers(c, deref);
         const externalizableFunctions = getFunctions(c, deref, subset).filter(f => isExternalizable(f, deref));
         const returnedEventFunctions = externalizableFunctions.filter(fn => isNonViewWithReturns(fn));
