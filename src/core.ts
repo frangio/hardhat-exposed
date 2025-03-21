@@ -444,7 +444,13 @@ function isTypeExternalizable(typeName: TypeName | null | undefined, deref: ASTD
     }
   } else if (typeName.nodeType === 'ArrayTypeName') {
     if (typeName.length) {
-      const size = parseInt(typeName.length.typeDescriptions.typeString?.match(/int_const (\d*)/)?.[1]!);
+      let value;
+      if (typeName.length.hasOwnProperty('value')) {
+        ({ value } = (typeName.length as { value: string }));
+      } else {
+        value = typeName.length.typeDescriptions.typeString?.match(/int_const (\d*)/)?.[1]!;
+      }
+      const size = parseInt(value);
       return isNaN(size) || size < 2**27;
     } else {
       return true;
