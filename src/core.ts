@@ -442,19 +442,9 @@ function isTypeExternalizable(typeName: TypeName | null | undefined, deref: ASTD
     } else {
       return typeDef.members.every(m => isTypeExternalizable(m.typeName, deref));
     }
-  } else if (typeName.nodeType === 'ArrayTypeName') {
-    if (typeName.length) {
-      let value;
-      if (typeName.length.hasOwnProperty('value')) {
-        ({ value } = (typeName.length as { value: string }));
-      } else {
-        value = typeName.length.typeDescriptions.typeString?.match(/int_const (\d*)/)?.[1]!;
-      }
-      const size = parseInt(value);
-      return isNaN(size) || size < 2**27;
-    } else {
-      return true;
-    }
+  } else if (typeName.nodeType === 'ArrayTypeName' && typeName.length != undefined) {
+    const value = typeName.length.typeDescriptions.typeIdentifier?.match(/^t_rational_([^_]*)_by_1$/)?.[1];
+    return value !== undefined && parseInt(value) < 2**27;
   } else {
     return typeName.nodeType !== 'Mapping' && typeName.nodeType !== 'FunctionTypeName';
   }
