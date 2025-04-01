@@ -209,7 +209,7 @@ contract WithLargeArrays {
 
     bytes32[2**27] internal _tooLarge;
 
-    bytes32[13628586471354763981941763948137335272053484972029428504726465057908568640444] internal _tooLargeLiteral;
+    bytes32[150000000] internal _tooLargeLiteral;
 
     struct TooLargeInStruct {
         bytes32[2**27] _tooLarge;
