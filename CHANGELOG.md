@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.19
+
+- Skip arrays too large for memory.
+
 ## 0.3.18
 
 - Expose modifiers in addition to functions.

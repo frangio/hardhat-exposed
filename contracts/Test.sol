@@ -204,6 +204,26 @@ contract WithVars {
     }
 }
 
+contract WithLargeArrays {
+    bytes32[(2**27) - 1] internal _notTooLarge;
+
+    bytes32[2**27] internal _tooLarge;
+
+    bytes32[150000000] internal _tooLargeLiteral;
+
+    struct TooLargeInStruct {
+        bytes32[2**27] _tooLarge;
+    }
+
+
+    // NotTooLarge private _notTooLarge;
+    TooLargeInStruct private _tooLargeInStruct;
+
+    function getTooLarge() internal view returns (TooLargeInStruct storage) {
+        return _tooLargeInStruct;
+    }
+}
+
 contract WithInternalReturns {
     uint256 private counter = 0;
 
